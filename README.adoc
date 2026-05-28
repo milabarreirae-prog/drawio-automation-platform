@@ -2,6 +2,25 @@
 
 Dockerized headless version of https://github.com/jgraph/drawio-desktop[Draw.io Desktop v30.0.1]
 
+== Fork Extensions
+
+This repository now also carries a Python-based automation platform on top of the
+upstream headless Draw.io image.
+
+The added platform provides:
+
+* FastAPI REST API for diagram submission and status lookup
+* Async worker processing with Redis/ARQ
+* Compliance validation for XML, colors, stencils, and ArchiMate licensing
+* Stencil resolution helpers, webhook callbacks, and object-storage integration
+
+Fork-specific documentation:
+
+* link:ARCHITECTURE.md[ARCHITECTURE.md]
+* link:NOTICE[NOTICE]
+* link:THIRD_PARTY_LICENSES.md[THIRD_PARTY_LICENSES.md]
+* link:FORK_SETUP.md[FORK_SETUP.md]
+
 == What it does
 
 Draw.io Desktop exposes a command-line client to allow us to create, check or export diagrams.
