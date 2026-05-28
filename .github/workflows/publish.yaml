@@ -5,6 +5,10 @@ on:
   release:
     types: [published]
 
+env:
+  DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME || github.repository_owner }}
+  DOCKERHUB_REPOSITORY: ${{ vars.DOCKERHUB_REPOSITORY || github.event.repository.name }}
+
 permissions: read-all
 
 jobs:
@@ -31,7 +35,7 @@ jobs:
       - name: Publish to Registry (${{ matrix.font_variant }})
         uses: elgohr/Publish-Docker-Github-Action@v5
         with:
-          name: rlespinasse/drawio-desktop-headless
+          name: ${{ env.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPOSITORY }}
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           tags: ${{ matrix.tags }}

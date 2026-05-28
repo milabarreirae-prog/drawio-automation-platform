@@ -6,10 +6,14 @@ on:
     types: [published]
   push:
     branches:
-      - v1.x
+      - main
     paths:
       - DOCKER.md
       - .github/workflows/dockerhub.yaml
+
+env:
+  DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME || github.repository_owner }}
+  DOCKERHUB_REPOSITORY: ${{ vars.DOCKERHUB_REPOSITORY || github.event.repository.name }}
 
 permissions: read-all
 
@@ -23,7 +27,7 @@ jobs:
       - name: Sync information on Docker Hub
         uses: peter-evans/dockerhub-description@v5
         with:
-          username: rlespinasse
+          username: ${{ env.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: rlespinasse/drawio-desktop-headless
+          repository: ${{ env.DOCKERHUB_USERNAME }}/${{ env.DOCKERHUB_REPOSITORY }}
           readme-filepath: ./DOCKER.md

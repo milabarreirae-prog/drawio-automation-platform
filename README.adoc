@@ -21,6 +21,11 @@ Fork-specific documentation:
 * link:THIRD_PARTY_LICENSES.md[THIRD_PARTY_LICENSES.md]
 * link:FORK_SETUP.md[FORK_SETUP.md]
 
+Operational branch model:
+
+* `main` is the primary integration and release branch for this fork.
+* `upstream/v1.x` is kept as the synchronization source for the upstream runtime lineage.
+
 == What it does
 
 Draw.io Desktop exposes a command-line client to allow us to create, check or export diagrams.
