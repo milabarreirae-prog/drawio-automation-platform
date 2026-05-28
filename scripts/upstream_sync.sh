@@ -9,7 +9,7 @@ echo "🔄 Sincronizando con upstream..."
 # Verificar que upstream está configurado
 if ! git remote | grep -q "^upstream$"; then
     echo "❌ Error: Remote 'upstream' no está configurado"
-    echo "   Ejecuta: git remote add upstream https://github.com/rlespinasse/drawio-desktop-headless.git"
+    echo "   Ejecuta: git remote add upstream https://github.com/rlespinasse/docker-drawio-desktop-headless.git"
     exit 1
 fi
 
@@ -19,7 +19,7 @@ git fetch upstream
 
 # Verificar si hay nuevos commits
 LOCAL_COMMIT=$(git rev-parse main)
-UPSTREAM_COMMIT=$(git rev-parse upstream/main)
+UPSTREAM_COMMIT=$(git rev-parse upstream/v1.x)
 
 if [ "$LOCAL_COMMIT" = "$UPSTREAM_COMMIT" ]; then
     echo "✅ Ya estás actualizado con upstream"
@@ -27,7 +27,7 @@ if [ "$LOCAL_COMMIT" = "$UPSTREAM_COMMIT" ]; then
 fi
 
 echo "📊 Nuevos commits encontrados:"
-git log --oneline main..upstream/main
+git log --oneline main..upstream/v1.x
 
 # Crear rama para el merge
 BRANCH_NAME="automated/upstream-sync-$(date +%Y%m%d-%H%M%S)"
@@ -35,7 +35,7 @@ git checkout -b "$BRANCH_NAME"
 
 # Intentar merge
 echo "🔀 Intentando merge..."
-if git merge upstream/main --no-edit; then
+if git merge upstream/v1.x --no-edit; then
     echo "✅ Merge exitoso"
     
     # Ejecutar tests si existen

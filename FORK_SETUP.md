@@ -6,16 +6,15 @@ Recommended remote layout:
 
 ```bash
 git remote add origin <your fork url>
-git remote add upstream https://github.com/rlespinasse/drawio-desktop-headless.git
+git remote add upstream https://github.com/rlespinasse/docker-drawio-desktop-headless.git
 ```
 
 ## Branch Roles
 
 This repository currently uses the following local branch strategy:
-- `main`: original local release snapshot
+- `main`: integrated primary branch for the fork
 - `backup/local-v0.1.0`: immutable backup of the prototype platform
-- `integration/v1.x`: local branch based on `origin/v1.x`
-- `port/platform-foundation`: first selective port of the Python automation layer
+- `v1.x`: upstream runtime branch retained as sync source
 
 ## Why Not Merge Histories Directly?
 

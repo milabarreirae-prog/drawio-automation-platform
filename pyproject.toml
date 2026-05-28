@@ -54,7 +54,7 @@ dev = [
 Homepage = "https://github.com/drawio-automation-platform/drawio-automation-platform"
 "Bug Tracker" = "https://github.com/drawio-automation-platform/drawio-automation-platform/issues"
 "Source Code" = "https://github.com/drawio-automation-platform/drawio-automation-platform"
-"Upstream Project" = "https://github.com/rlespinasse/drawio-desktop-headless"
+"Upstream Project" = "https://github.com/rlespinasse/docker-drawio-desktop-headless"
 
 [tool.setuptools]
 packages = ["api", "worker"]

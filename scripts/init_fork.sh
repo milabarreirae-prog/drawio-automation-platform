@@ -16,7 +16,7 @@ fi
 # Verificar que upstream está configurado
 if ! git remote | grep -q "^upstream$"; then
     echo "❌ Error: Remote 'upstream' no está configurado"
-    echo "   Ejecuta: git remote add upstream https://github.com/rlespinasse/drawio-desktop-headless.git"
+    echo "   Ejecuta: git remote add upstream https://github.com/rlespinasse/docker-drawio-desktop-headless.git"
     exit 1
 fi
 
@@ -154,15 +154,15 @@ LOG_LEVEL=info
 EOF
 
 # Crear FORK.md inicial
-UPSTREAM_COMMIT=$(git rev-parse upstream/main 2>/dev/null || echo "unknown")
-UPSTREAM_DATE=$(git log -1 --format=%cd upstream/main 2>/dev/null || echo "unknown")
+UPSTREAM_COMMIT=$(git rev-parse upstream/v1.x 2>/dev/null || echo "unknown")
+UPSTREAM_DATE=$(git log -1 --format=%cd upstream/v1.x 2>/dev/null || echo "unknown")
 
 cat > FORK.md << EOF
 # Fork Declaration: drawio-automation-platform
 
 ## Origin
 
-This project is a fork of [rlespinasse/drawio-desktop-headless](https://github.com/rlespinasse/drawio-desktop-headless).
+This project is a fork of [rlespinasse/docker-drawio-desktop-headless](https://github.com/rlespinasse/docker-drawio-desktop-headless).
 
 **Fork Point:**
 - **Upstream Commit:** \`${UPSTREAM_COMMIT}\`
@@ -209,7 +209,7 @@ We are committed to contributing back to the upstream project whenever possible:
 \`\`\`bash
 # Weekly sync via GitHub Actions
 git fetch upstream
-git merge upstream/main
+git merge upstream/v1.x
 # Resolve conflicts if any
 # Run tests
 # Push to fork
@@ -223,7 +223,7 @@ We gratefully acknowledge the work of [rlespinasse](https://github.com/rlespinas
 
 ## Contact
 
-- **Upstream Issues**: https://github.com/rlespinasse/drawio-desktop-headless/issues
+- **Upstream Issues**: https://github.com/rlespinasse/docker-drawio-desktop-headless/issues
 - **Fork Issues**: https://github.com/YOUR_ORG/drawio-automation-platform/issues
 - **Upstream Discussions**: Use GitHub Discussions in the upstream repo
 

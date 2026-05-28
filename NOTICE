@@ -5,8 +5,8 @@ This repository contains upstream and fork-specific work.
 ## Upstream Attribution
 
 The runtime base is derived from:
-- Project: rlespinasse/drawio-desktop-headless
-- URL: https://github.com/rlespinasse/drawio-desktop-headless
+- Project: rlespinasse/docker-drawio-desktop-headless
+- URL: https://github.com/rlespinasse/docker-drawio-desktop-headless
 - License: MIT
 
 That upstream project provides the headless Draw.io Desktop container runtime,
