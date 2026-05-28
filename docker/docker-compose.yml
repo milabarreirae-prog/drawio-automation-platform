@@ -1,0 +1,239 @@
+# ============================================================================
+# drawio-automation-platform — Docker Compose Configuration
+# ============================================================================
+# Services:
+#   - redis:       Redis 7.2 for task queue (ARQ)
+#   - api:         FastAPI REST API (512MB limit)
+#   - worker:      Draw.io rendering worker (2GB limit, 3 concurrent jobs)
+#   - minio:       S3-compatible storage for development (optional)
+#
+# Usage:
+#   docker compose -f docker/docker-compose.yml up -d
+#   docker compose -f docker/docker-compose.yml --profile dev up -d  # with MinIO
+# ============================================================================
+
+version: "3.8"
+
+# ============================================================================
+# Services
+# ============================================================================
+services:
+  # --------------------------------------------------------------------------
+  # Redis — Task queue backend for ARQ
+  # --------------------------------------------------------------------------
+  redis:
+    image: redis:7.2-alpine
+    container_name: drawio-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - drawio-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # --------------------------------------------------------------------------
+  # API — FastAPI REST service
+  # --------------------------------------------------------------------------
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    image: drawio-api:latest
+    container_name: drawio-api
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      # Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      # S3 (MinIO dev or AWS prod)
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-http://minio:9000}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-minioadmin}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-minioadmin}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-drawio-exports}
+      - S3_KEY_PREFIX=${S3_KEY_PREFIX:-}
+      # Stencils
+      - ALLOWED_STENCILS=${ALLOWED_STENCILS:-aws4,gcp2,azure,archimate3,c4,cisco,oci}
+      - ALLOWED_COLORS=${ALLOWED_COLORS:-}
+      # ArchiMate
+      - ARCHIMATE_LICENSE_KEY=${ARCHIMATE_LICENSE_KEY:-}
+      # Export config
+      - DEFAULT_EXPORT_FORMAT=${DEFAULT_EXPORT_FORMAT:-svg}
+      - ALLOWED_EXPORT_FORMATS=${ALLOWED_EXPORT_FORMATS:-svg,png,pdf}
+      # Worker config
+      - WORKER_MAX_JOBS=${WORKER_MAX_JOBS:-3}
+      - WORKER_JOB_TIMEOUT=${WORKER_JOB_TIMEOUT:-300}
+      # Webhooks
+      - WEBHOOK_DEFAULT_URL=${WEBHOOK_DEFAULT_URL:-}
+      - WEBHOOK_TIMEOUT=${WEBHOOK_TIMEOUT:-30}
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      - ACCESS_LOG_ENABLED=${ACCESS_LOG_ENABLED:-true}
+      # API Key (optional)
+      - API_KEY=${API_KEY:-}
+    mem_limit: 512m
+    mem_reservation: 256m
+    cpus: "1.0"
+    tmpfs:
+      - /tmp:exec,size=128M
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - drawio-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # --------------------------------------------------------------------------
+  # Worker — Draw.io rendering service
+  # --------------------------------------------------------------------------
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    image: drawio-worker:latest
+    container_name: drawio-worker
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      # Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      # S3 (MinIO dev or AWS prod)
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-http://minio:9000}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-minioadmin}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-minioadmin}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-drawio-exports}
+      - S3_KEY_PREFIX=${S3_KEY_PREFIX:-}
+      # Stencils
+      - ALLOWED_STENCILS=${ALLOWED_STENCILS:-aws4,gcp2,azure,archimate3,c4,cisco,oci}
+      - ALLOWED_COLORS=${ALLOWED_COLORS:-}
+      # ArchiMate
+      - ARCHIMATE_LICENSE_KEY=${ARCHIMATE_LICENSE_KEY:-}
+      # Worker config
+      - WORKER_MAX_JOBS=${WORKER_MAX_JOBS:-3}
+      - WORKER_JOB_TIMEOUT=${WORKER_JOB_TIMEOUT:-300}
+      - WORKER_RENDER_MAX_RETRIES=${WORKER_RENDER_MAX_RETRIES:-2}
+      - WORKER_RENDER_RETRY_BACKOFF=${WORKER_RENDER_RETRY_BACKOFF:-2}
+      # Chromium / Draw.io
+      - CHROMIUM_FLAGS=--no-sandbox --disable-gpu --disable-dev-shm-usage --disable-setuid-sandbox --single-process
+      - DRAWIO_CLI_PATH=/opt/drawio/drawio
+      # Webhooks
+      - WEBHOOK_DEFAULT_URL=${WEBHOOK_DEFAULT_URL:-}
+      - WEBHOOK_TIMEOUT=${WEBHOOK_TIMEOUT:-30}
+      - WEBHOOK_MAX_RETRIES=${WEBHOOK_MAX_RETRIES:-2}
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+    mem_limit: 2g
+    mem_reservation: 1g
+    cpus: "2.0"
+    tmpfs:
+      - /tmp:exec,size=512M
+      - /tmp/drawio:exec,size=256M
+    volumes:
+      # Mount stencil cache for persistence between container restarts
+      - stencil-cache:/app/stencils/downloaded
+      # Mount output directory (optional, for local inspection)
+      - output-data:/app/output
+    healthcheck:
+      test: ["CMD", "redis-cli", "-h", "redis", "-p", "6379", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - drawio-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # --------------------------------------------------------------------------
+  # MinIO — S3-compatible storage (development only)
+  # --------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: drawio-minio
+    profiles: ["dev"]  # Only started when --profile dev is used
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web Console
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - drawio-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  redis-data:
+    driver: local
+    name: drawio-redis-data
+  stencil-cache:
+    driver: local
+    name: drawio-stencil-cache
+  output-data:
+    driver: local
+    name: drawio-output-data
+  minio-data:
+    driver: local
+    name: drawio-minio-data
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  drawio-net:
+    driver: bridge
+    name: drawio-network

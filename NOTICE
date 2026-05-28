@@ -1,0 +1,176 @@
+# NOTICE - Third-Party Attributions and Copyright Notices
+
+This file contains copyright notices and attributions for all third-party software,
+libraries, and assets used by or incorporated into the drawio-automation-platform project.
+
+## Upstream Fork Attribution
+
+This project is a fork of [rlespinasse/drawio-desktop-headless](https://github.com/rlespinasse/drawio-desktop-headless).
+Original copyright and license notices from the upstream project are preserved below.
+
+### rlespinasse/drawio-desktop-headless
+- **Repository**: https://github.com/rlespinasse/drawio-desktop-headless
+- **License**: MIT License
+- **Copyright**: Copyright (c) 2021-2024 Romain Lespinasse and contributors
+- **Description**: Docker image for running drawio-desktop in headless mode
+- **Modifications in this fork**: See FORK.md for complete list of modifications
+
+---
+
+## Core Draw.io Attribution
+
+### JGraph Ltd (draw.io / diagrams.net)
+- **URL**: https://www.drawio.com / https://www.diagrams.net
+- **License**: Apache License 2.0
+- **Copyright**: Copyright (c) 2005-2024 JGraph Ltd
+- **Description**: The draw.io desktop application provides the rendering engine
+  used in this platform. The base Docker image bundles draw.io Desktop.
+- **Note**: draw.io is a registered trademark of JGraph Ltd. This project is not
+  affiliated with or endorsed by JGraph Ltd.
+
+### jgraph/drawio
+- **Repository**: https://github.com/jgraph/drawio
+- **License**: Apache License 2.0
+- **Copyright**: Copyright (c) 2005-2024 JGraph Ltd
+- **Description**: Core drawio JavaScript application providing the diagram editor.
+
+### jgraph/docker-drawio
+- **Repository**: https://github.com/jgraph/docker-drawio
+- **License**: Apache License 2.0
+- **Copyright**: Copyright (c) 2005-2024 JGraph Ltd
+
+---
+
+## Stencil Libraries and Attributions
+
+Each stencil library used by this platform has its own license terms. Users are
+responsible for complying with the respective license terms when using stencils.
+
+### AWS Architecture Icons (aws4)
+- **Provider**: Amazon Web Services, Inc.
+- **URL**: https://aws.amazon.com/architecture/icons/
+- **License**: Proprietary (AWS provides icons under terms that permit use in
+  architecture diagrams with attribution)
+- **Usage**: Icons downloaded and cached locally. Not redistributed.
+- **Attribution Required**: Yes, when used in generated diagrams
+
+### Google Cloud Platform Icons (gcp2)
+- **Provider**: Google LLC
+- **URL**: https://cloud.google.com/icons
+- **License**: Creative Commons Attribution 4.0 (CC BY 4.0)
+- **Copyright**: Copyright Google LLC
+- **Attribution Required**: Yes, when used in generated diagrams
+
+### Microsoft Azure Icons (azure)
+- **Provider**: Microsoft Corporation
+- **URL**: https://learn.microsoft.com/en-us/azure/architecture/icons/
+- **License**: Microsoft permits use in architectural diagrams with attribution
+- **Copyright**: Copyright Microsoft Corporation
+- **Attribution Required**: Yes, when used in generated diagrams
+
+### ArchiMate (archimate3)
+- **Provider**: The Open Group
+- **URL**: https://www.opengroup.org/archimate-forum/archimate-overview
+- **License**: ArchiMate is a registered trademark of The Open Group.
+  Commercial use requires a license from The Open Group.
+  See https://www.opengroup.org/certifications/archimate
+- **Copyright**: Copyright The Open Group
+- **Note**: This project requires an ARCHIMATE_LICENSE_KEY for commercial use.
+  ArchiMate-related rendering is blocked without a valid license key.
+
+### C4 Model Stencils (c4)
+- **Provider**: Simon Brown / structurizr
+- **URL**: https://c4model.com / https://github.com/structurizr
+- **License**: Creative Commons Attribution 4.0 (CC BY 4.0) for C4 model
+  stencil shapes. The C4 model concept is licensed under a Creative Commons license.
+- **Copyright**: Copyright Simon Brown
+- **Attribution Required**: Yes
+
+### Cisco Network Icons (cisco)
+- **Provider**: Cisco Systems, Inc.
+- **URL**: https://www.cisco.com/c/en/us/about/brand-center/network-topology-icons.html
+- **License**: Cisco permits use in network topology diagrams with attribution
+- **Copyright**: Copyright Cisco Systems, Inc.
+- **Attribution Required**: Yes
+
+### Oracle Cloud Infrastructure Icons (oci)
+- **Provider**: Oracle Corporation
+- **URL**: https://docs.oracle.com/en-us/iaas/Content/General/Reference/graphicsfordiagrams.htm
+- **License**: Oracle permits use in architecture diagrams with attribution
+- **Copyright**: Copyright Oracle Corporation
+- **Attribution Required**: Yes
+
+### LeanIX Stencils (leanix)
+- **Provider**: LeanIX GmbH (SAP)
+- **URL**: https://www.leanix.net/
+- **License**: Proprietary
+- **Status**: Marked as "unavailable" by default. Requires separate licensing
+  agreement with LeanIX for use.
+- **Copyright**: Copyright LeanIX GmbH
+
+---
+
+## Open Source Dependencies
+
+### Python Dependencies
+
+The following open source Python packages are used by this platform.
+See `pyproject.toml`, `api/requirements.txt`, and `worker/requirements.txt`
+for exact version constraints.
+
+| Package | License | Copyright |
+|---------|---------|-----------|
+| fastapi | MIT | Copyright (c) 2018 Sebastián Ramírez |
+| uvicorn | BSD-3-Clause | Copyright (c) 2017-present Encode OSS Ltd |
+| arq | MIT | Copyright (c) 2018 Samuel Colvin |
+| redis-py | MIT | Copyright (c) 2012 Andy McCurdy |
+| pydantic | MIT | Copyright (c) 2017-present Samuel Colvin |
+| lxml | BSD-3-Clause | Copyright (c) 2004 Infrae |
+| httpx | BSD-3-Clause | Copyright (c) 2019-present Encode OSS Ltd |
+| boto3 | Apache 2.0 | Copyright Amazon Web Services, Inc. |
+| python-dotenv | BSD-3-Clause | Copyright (c) 2014 Saurabh Kumar |
+
+### Additional Runtime Dependencies
+
+| Component | License | Copyright |
+|-----------|---------|-----------|
+| Redis | BSD-3-Clause (RSALv2 for modules) | Copyright (c) 2006-2024 Redis Ltd. |
+| Chromium | BSD-3-Clause | Copyright (c) 2008-2024 The Chromium Authors |
+| Xvfb | MIT | Copyright (c) The X.Org Foundation |
+| Debian/Ubuntu base images | Various | Copyright respective Debian/Ubuntu contributors |
+
+---
+
+## Fonts and Assets
+
+Draw.io uses the following fonts by default. These are bundled in the
+upstream Docker image and are not modified by this fork.
+
+- **Google Fonts** (various): Licensed under SIL Open Font License 1.1
+- **DejaVu Fonts**: Licensed under Bitstream Vera Fonts Copyright + Public Domain
+
+---
+
+## How to Add New Attributions
+
+When adding new stencil libraries or dependencies, add entries to this file
+following the format above. Use the following template:
+
+```
+### [Name] ([stencil_id])
+- **Provider**: [Company/Author]
+- **URL**: [Source URL]
+- **License**: [License name and reference]
+- **Copyright**: [Copyright holder and year]
+- **Attribution Required**: [Yes/No]
+```
+
+## Contact
+
+For questions about attributions or to report missing attributions, please
+open an issue at the project repository.
+
+---
+
+*This NOTICE file is maintained as part of the project's AGPL-3.0 compliance
+requirements. Last updated: 2025*
