@@ -1,0 +1,75 @@
+name: Weekly Stencils Update
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      force_recreate:
+        description: "Force recreate all stencils"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-stencils:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install httpx
+
+      - name: Fetch stencils
+        run: |
+          FETCH_ARGS=""
+          if [ "${{ inputs.force_recreate }}" = "true" ]; then
+            FETCH_ARGS="--force"
+          fi
+          python scripts/fetch_stencils.py $FETCH_ARGS --log-level INFO
+
+      - name: Check for stencil changes
+        id: stencil_diff
+        run: |
+          git add stencils/
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --cached --stat
+          fi
+
+      - name: Verify licenses
+        if: steps.stencil_diff.outputs.changed == 'true'
+        run: |
+          python scripts/verify_licenses.py --check-strict
+
+      - name: Create pull request
+        if: steps.stencil_diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: automated/stencils-update
+          base: v1.x
+          commit-message: "chore(stencils): automated stencil update"
+          title: "chore(stencils): automated stencil update"
+          body: |
+            This PR refreshes the fork stencil metadata and downloaded assets.
+
+            Checks to perform:
+            - verify license compatibility
+            - verify rendering compatibility for affected stencil sets
+            - confirm no unexpected manifest regressions
+          delete-branch: true
