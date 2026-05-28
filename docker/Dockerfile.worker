@@ -1,0 +1,99 @@
+# ============================================================================
+# drawio-automation-platform — Worker Service Dockerfile
+# ============================================================================
+# Builds on top of rlespinasse/drawio-desktop-headless which provides:
+#   - Draw.io Desktop (headless)
+#   - Xvfb (virtual framebuffer)
+#   - Chromium (for rendering)
+#   - Required system libraries
+#
+# Adds:
+#   - Python 3.11 and virtual environment
+#   - ARQ worker for async task processing
+#   - Stencil libraries
+#   - S3 upload and webhook notification capabilities
+#
+# Build:
+#   docker build -f docker/Dockerfile.worker -t drawio-worker:latest .
+#
+# IMPORTANT: This Dockerfile MUST use
+#   FROM rlespinasse/drawio-desktop-headless:latest
+# as the base image per the project's architecture requirements.
+# ============================================================================
+
+FROM rlespinasse/drawio-desktop-headless:latest
+
+# ============================================================================
+# System Dependencies for Python and ARQ Worker
+# ============================================================================
+USER root
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python3.11 \
+        python3.11-venv \
+        python3.11-dev \
+        python3-pip \
+        libxml2-dev \
+        libxslt1-dev \
+        gcc \
+        libc6-dev \
+        redis-tools \
+        curl \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1
+
+# ============================================================================
+# Python Virtual Environment
+# ============================================================================
+RUN python3.11 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install Python dependencies
+COPY worker/requirements.txt /tmp/worker-requirements.txt
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r /tmp/worker-requirements.txt
+
+# ============================================================================
+# Application Setup
+# ============================================================================
+WORKDIR /app
+
+# Copy application code
+COPY api/__init__.py /app/api/__init__.py
+COPY api/config.py /app/api/config.py
+COPY worker/ /app/worker/
+COPY stencils/ /app/stencils/
+
+# Create runtime directories
+RUN mkdir -p /app/stencils/downloaded /app/output /tmp/drawio && \
+    chmod 777 /tmp/drawio
+
+# ============================================================================
+# Chromium Security Flags
+# ============================================================================
+# These flags are REQUIRED for Chromium to run inside a Docker container
+# and as a non-root user. DO NOT REMOVE.
+ENV CHROMIUM_FLAGS="--no-sandbox --disable-gpu --disable-dev-shm-usage --disable-setuid-sandbox --single-process"
+ENV DRAWIO_CLI_PATH="/opt/drawio/drawio"
+
+# ============================================================================
+# Entrypoint
+# ============================================================================
+COPY docker/worker-entrypoint.sh /usr/local/bin/worker-entrypoint.sh
+RUN chmod +x /usr/local/bin/worker-entrypoint.sh
+
+# Switch to drawuser (provided by base image)
+USER drawuser
+
+# Health check — verify Redis connectivity and process health
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD redis-cli -h $REDIS_HOST -p $REDIS_PORT ping || exit 1
+
+# Use entrypoint script for pre-flight checks
+ENTRYPOINT ["/usr/local/bin/worker-entrypoint.sh"]
+
+# Default: run ARQ worker
+CMD ["arq", "worker.tasks.WorkerSettings", "--workers", "3"]
