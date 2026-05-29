@@ -10,6 +10,9 @@
 # Usage:
 #   docker compose -f docker/docker-compose.yml up -d
 #   docker compose -f docker/docker-compose.yml --profile dev up -d  # with MinIO
+#
+# By default Redis is published on host port 6380 to avoid collisions with a
+# local Redis instance already bound to 6379.
 # ============================================================================
 
 # ============================================================================
@@ -29,7 +32,7 @@ services:
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${REDIS_HOST_PORT:-6380}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
