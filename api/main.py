@@ -74,7 +74,6 @@ async def lifespan(app: FastAPI):
             port=settings.redis_port,
             database=settings.redis_db,
             password=settings.redis_password,
-            retry_on_timeout=settings.redis_retry_on_timeout,
         )
         arq_pool = await create_pool(redis_settings)
         # Verify connection

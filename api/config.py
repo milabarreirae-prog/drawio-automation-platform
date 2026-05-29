@@ -32,7 +32,6 @@ class Settings(BaseSettings):
     redis_db: int = 0
     redis_password: Optional[str] = None
     redis_max_connections: int = 20
-    redis_retry_on_timeout: bool = True
 
     # =========================================================================
     # ARQ Configuration
