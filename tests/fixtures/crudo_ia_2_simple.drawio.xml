@@ -1,0 +1,62 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Arquitectura N2">
+    <mxGraphModel dx="1000" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Usuario -->
+        <mxCell id="user" value="Usuario" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="50" y="200" width="60" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- Front -->
+        <mxCell id="frontend" value="Frontend (Web/App)" style="rounded=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="200" y="180" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- API Gateway -->
+        <mxCell id="api" value="API Gateway" style="rounded=1;fillColor=#fff2cc;" vertex="1" parent="1">
+          <mxGeometry x="400" y="180" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Microservicio -->
+        <mxCell id="ms1" value="Microservicio A" style="rounded=1;fillColor=#d5e8d4;" vertex="1" parent="1">
+          <mxGeometry x="600" y="120" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- DB -->
+        <mxCell id="db" value="Base de Datos" style="shape=cylinder;fillColor=#f8cecc;" vertex="1" parent="1">
+          <mxGeometry x="850" y="120" width="80" height="100" as="geometry"/>
+        </mxCell>
+
+        <!-- Kafka -->
+        <mxCell id="kafka" value="Kafka / Mensajería" style="rounded=1;fillColor=#e1d5e7;" vertex="1" parent="1">
+          <mxGeometry x="600" y="260" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Conexiones -->
+        <mxCell id="e1" edge="1" parent="1" source="user" target="frontend" style="endArrow=block;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e2" edge="1" parent="1" source="frontend" target="api" style="endArrow=block;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e3" edge="1" parent="1" source="api" target="ms1" style="endArrow=block;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e4" edge="1" parent="1" source="ms1" target="db" style="endArrow=block;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e5" edge="1" parent="1" source="ms1" target="kafka" style="endArrow=block;dashed=1;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

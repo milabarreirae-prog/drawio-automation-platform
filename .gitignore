@@ -24,6 +24,11 @@ home
 .config
 core
 
+# c4norm: salidas generadas (los crudos de entrada sí se versionan)
+tests/fixtures/out_*.drawio.xml
+
 # repository
 patch.diff
 package.json
+# ...pero sí versionamos el manifiesto del puente ELK (sus node_modules ya están ignorados)
+!c4norm/layout/package.json

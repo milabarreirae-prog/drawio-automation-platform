@@ -1,0 +1,10 @@
+{
+  "name": "c4norm-elk",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Puente ELK (Eclipse Layout Kernel) para c4norm vía elkjs.",
+  "main": "elk_runner.js",
+  "dependencies": {
+    "elkjs": "^0.9.3"
+  }
+}

@@ -1,1 +1,0 @@
-"""Worker package for drawio-automation-platform."""

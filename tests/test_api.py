@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.config import Settings
-from api.main import app, arq_pool
+from api.main import _clear_rate_limit_state, app, arq_pool
 
 
 # =============================================================================
@@ -23,6 +23,12 @@ from api.main import app, arq_pool
 def client() -> TestClient:
     """Create a TestClient for the FastAPI app."""
     return TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def clear_rate_limit_state_fixture() -> None:
+    """Ensure in-memory rate limit buckets do not leak across tests."""
+    _clear_rate_limit_state()
 
 
 @pytest.fixture
@@ -62,6 +68,18 @@ class TestHealthEndpoint:
     def test_health_has_version(self, client: TestClient) -> None:
         response = client.get("/health")
         assert response.json()["version"] == "0.1.0"
+
+
+class TestMetricsEndpoint:
+    """Tests for GET /metrics."""
+
+    def test_metrics_returns_prometheus_payload(self, client: TestClient) -> None:
+        # Generate a request to ensure counters are populated.
+        client.get("/health")
+
+        response = client.get("/metrics")
+        assert response.status_code == 200
+        assert "drawio_http_requests_total" in response.text
 
 
 # =============================================================================
@@ -313,3 +331,154 @@ class TestErrorHandling:
             }
             response = client.post("/api/v1/diagram/generate", json=payload)
             assert response.status_code == 422
+
+
+# =============================================================================
+# API Key Authentication Tests
+# =============================================================================
+
+
+class TestAPIKeyAuth:
+    """Tests for optional API key auth on business endpoints."""
+
+    def test_generate_requires_auth_header_when_api_key_configured(self, client: TestClient) -> None:
+        """When API key is configured, missing Authorization header should return 401."""
+        mock_pool = AsyncMock()
+        mock_pool.ping = AsyncMock(return_value=True)
+
+        with patch("api.main.settings", Settings(api_key="secret-key")):
+            with patch("api.main.arq_pool", mock_pool):
+                payload = {
+                    "xml_content": """<mxGraphModel><root><mxCell id=\"0\"/></root></mxGraphModel>""",
+                    "export_format": "svg",
+                }
+                response = client.post("/api/v1/diagram/generate", json=payload)
+                assert response.status_code == 401
+
+    def test_generate_rejects_invalid_api_key(self, client: TestClient, mocker) -> None:
+        """When API key is configured, wrong bearer token should return 403."""
+        mock_pool = AsyncMock()
+        mock_pool.ping = AsyncMock(return_value=True)
+        mock_job = mocker.MagicMock()
+        mock_job.job_id = str(uuid.uuid4())
+
+        async def _enqueue(*args, **kwargs):
+            return mock_job
+
+        mock_pool.enqueue_job = _enqueue
+
+        with patch("api.main.settings", Settings(api_key="secret-key")):
+            with patch("api.main.arq_pool", mock_pool):
+                payload = {
+                    "xml_content": """<mxGraphModel><root><mxCell id=\"0\"/></root></mxGraphModel>""",
+                    "export_format": "svg",
+                }
+                response = client.post(
+                    "/api/v1/diagram/generate",
+                    json=payload,
+                    headers={"Authorization": "Bearer wrong-key"},
+                )
+                assert response.status_code == 403
+
+    def test_generate_accepts_valid_api_key(self, client: TestClient, mocker) -> None:
+        """When API key is configured, matching bearer token should allow request."""
+        mock_pool = AsyncMock()
+        mock_pool.ping = AsyncMock(return_value=True)
+        mock_job = mocker.MagicMock()
+        mock_job.job_id = str(uuid.uuid4())
+
+        async def _enqueue(*args, **kwargs):
+            return mock_job
+
+        mock_pool.enqueue_job = _enqueue
+
+        with patch("api.main.settings", Settings(api_key="secret-key")):
+            with patch("api.main.arq_pool", mock_pool):
+                payload = {
+                    "xml_content": """<mxGraphModel><root><mxCell id=\"0\"/></root></mxGraphModel>""",
+                    "export_format": "svg",
+                }
+                response = client.post(
+                    "/api/v1/diagram/generate",
+                    json=payload,
+                    headers={"Authorization": "Bearer secret-key"},
+                )
+                assert response.status_code == 202
+                assert response.json()["status"] in ("queued", "rejected")
+
+    def test_status_requires_auth_header_when_api_key_configured(self, client: TestClient) -> None:
+        """Status endpoint should also enforce auth when API key is configured."""
+        mock_pool = AsyncMock()
+        mock_pool.ping = AsyncMock(return_value=True)
+        mock_pool.get_job_result = AsyncMock(return_value=None)
+
+        with patch("api.main.settings", Settings(api_key="secret-key")):
+            with patch("api.main.arq_pool", mock_pool):
+                response = client.get("/api/v1/diagram/status/some-task")
+                assert response.status_code == 401
+
+
+# =============================================================================
+# Rate Limiting Tests
+# =============================================================================
+
+
+class TestRateLimiting:
+    """Tests for per-IP rate limits on business endpoints."""
+
+    def test_generate_rate_limit_returns_429_when_exceeded(self, client: TestClient, mocker) -> None:
+        """Generate endpoint should reject requests above configured per-minute limit."""
+        mock_pool = AsyncMock()
+        mock_pool.ping = AsyncMock(return_value=True)
+        mock_job = mocker.MagicMock()
+        mock_job.job_id = str(uuid.uuid4())
+
+        async def _enqueue(*args, **kwargs):
+            return mock_job
+
+        mock_pool.enqueue_job = _enqueue
+
+        with patch("api.main.settings", Settings(rate_limit_generate_per_minute=1, rate_limit_status_per_minute=1000)):
+            with patch("api.main.arq_pool", mock_pool):
+                payload = {
+                    "xml_content": """<mxGraphModel><root><mxCell id=\"0\"/></root></mxGraphModel>""",
+                    "export_format": "svg",
+                }
+                first = client.post("/api/v1/diagram/generate", json=payload)
+                second = client.post("/api/v1/diagram/generate", json=payload)
+
+                assert first.status_code == 202
+                assert second.status_code == 429
+
+    def test_status_rate_limit_returns_429_when_exceeded(self, client: TestClient) -> None:
+        """Status endpoint should reject requests above configured per-minute limit."""
+        mock_pool = AsyncMock()
+        mock_pool.ping = AsyncMock(return_value=True)
+        mock_pool.get_job_result = AsyncMock(return_value=None)
+
+        with patch("api.main.settings", Settings(rate_limit_generate_per_minute=1000, rate_limit_status_per_minute=1)):
+            with patch("api.main.arq_pool", mock_pool):
+                first = client.get("/api/v1/diagram/status/task-1")
+                second = client.get("/api/v1/diagram/status/task-2")
+
+                assert first.status_code == 200
+                assert second.status_code == 429
+
+
+class TestPayloadLimits:
+    """Tests for XML payload size enforcement."""
+
+    def test_generate_rejects_payload_exceeding_limit(self, client: TestClient) -> None:
+        """Payload larger than MAX_XML_PAYLOAD_SIZE should return 413."""
+        mock_pool = AsyncMock()
+        mock_pool.ping = AsyncMock(return_value=True)
+
+        oversized_xml = "x" * 200
+        with patch("api.main.settings", Settings(max_xml_payload_size=100)):
+            with patch("api.main.arq_pool", mock_pool):
+                payload = {
+                    "xml_content": oversized_xml,
+                    "export_format": "svg",
+                }
+                response = client.post("/api/v1/diagram/generate", json=payload)
+                assert response.status_code == 413
