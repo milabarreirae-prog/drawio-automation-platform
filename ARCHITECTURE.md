@@ -21,7 +21,7 @@ renders it with its own Draw.io plugin.
 XML crudo (mxfile | mxGraphModel)
   → parse + sanear (mojibake, formato)        c4norm/parse.py
   → modelo lógico (+ reparar huérfanas)       c4norm/model.py
-  → clasificar a C4 (heurístico | LLM stub)   c4norm/classify.py
+  → clasificar a C4 (heurístico | LLM)         c4norm/classify.py
   → anclar nodos flotantes                    c4norm/ground.py
   → layout (ELK real | fallback Python)       c4norm/layout/
   → emitir C4 + hoja ISO 7200 ajustada        c4norm/emit.py, c4norm/sheet.py
@@ -37,13 +37,17 @@ CLI: `python -m c4norm <in.drawio.xml> --level {1|2|3} -o <out.xml>`.
 - `parse.py` — acepta `mxfile` y `mxGraphModel` pelado; sanea mojibake; reconstruye
   aristas huérfanas por proximidad.
 - `classify.py` — interfaz `C4Classifier`: `HeuristicClassifier` (determinista) y
-  `LLMClassifier` (stub pluggable, API tipo OpenAI, para corregir fuera de estándar).
+  `LLMClassifier` (OpenAI-compatible, provider-agnóstico). Modos: `heuristic` / `llm` /
+  `auto` (LLM solo en nodos de baja confianza si hay clave; si no, heurístico puro).
+  Lotes de hasta 20 nodos; el LLM nunca inventa — tipo inválido conserva el heurístico.
 - `ground.py` — ancla nodos de infra flotantes en un boundary de conectividad.
 - `sizing.py` — dimensiona cada caja a su texto.
 - `layout/` — motor intercambiable: **`ElkLayout`** (ELK real vía `elkjs`/Node,
   ruteo ortogonal que esquiva cajas) y **`LayeredLayout`** (fallback Python puro).
 - `sheet.py` — hoja ajustada al contenido (1:1) + cajetín ISO 7200.
 - `emit.py` — serializa a XML C4 (`<object>` tipados + estilo canónico + waypoints).
+  Devuelve `EmitResult`; soporta multi-hoja: si el diagrama desborda y hay ≥2 boundaries,
+  genera una hoja por boundary + "Contexto" con sus propios cajetines ("Hoja N de M").
 
 ### API (`api/`)
 API FastAPI **síncrona** que expone el normalizador:
@@ -66,7 +70,9 @@ restos (`src/`, `Dockerfile` raíz, pruebas Bats, workflows de drawio-desktop,
 
 ## Validation
 
-Pruebas Python: `tests/test_linting.py`, `tests/test_api.py`, `tests/test_c4norm.py`
-(motor ELK + fallback, parse, clasificación, hoja/cajetín). Para ejercitar ELK real
-hay que instalar Node + `elkjs` (`npm install --prefix c4norm/layout`); sin ellos,
-el normalizador usa el layout en Python puro. No hay CI en GitHub: se valida en local.
+Pruebas Python (78 tests): `test_c4norm.py` (pipeline completo, ELK + fallback),
+`test_api.py` (endpoint `/normalize`, auth, rate limit), `test_linting.py` (compliance),
+`test_llm_classifier.py` (LLM con `chat` inyectado, sin red), `test_ground.py`
+(anclado por tipo y casos límite), `test_multisheet.py` (descomposición por boundary).
+Para ejercitar ELK real: `npm install --prefix c4norm/layout`; sin Node, usa el
+fallback Python. No hay CI en GitHub: se valida en local.

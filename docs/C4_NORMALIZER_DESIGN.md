@@ -132,14 +132,15 @@ C4Classifier.classify(logical_model, c4_level) -> typed_model
     Software System externo; `swimlane` → DeploymentNode; `Rol:`/`Confianza:`/
     `Estado CMDB:` → `c4Description`; etc.
 
-- **`LLMClassifier`** (pluggable, **API tipo OpenAI**, provider-agnóstico):
-  - Para **corregir diagramas ya generados que están fuera de estándar**
-    (requisito a futuro).
-  - Provider configurable por entorno (OpenAI / Azure OpenAI / Anthropic / local
-    OpenAI-compatible). Sin acoplar el motor a un proveedor concreto.
-  - Prompt: dado (nodos + etiquetas + aristas + nivel) → JSON
-    `{id: {c4Type, c4Name, c4Description, c4Technology}}`, validado contra schema
-    (reintento si no valida).
+- **`LLMClassifier`** (implementado, **API tipo OpenAI**, provider-agnóstico):
+  - Para **corregir diagramas ya generados que están fuera de estándar**.
+  - Arranca con la heurística (baseline de nombres/tech/desc) y pide al LLM revisar
+    sólo el `c4Type`. **Nunca inventa**: tipo inválido → conserva el heurístico.
+  - Proceso en lotes de ≤20 nodos con el grafo de aristas completo como contexto;
+    reintentos ante JSON inválido.
+  - Provider configurable por entorno (`C4NORM_LLM_API_BASE/KEY/MODEL`); probado con
+    Alibaba Cloud MaaS (`qwen3.7-max`) y compatible con OpenAI, Azure OpenAI y
+    cualquier endpoint `/chat/completions` con `response_format: json_object`.
 
 **Estrategia (`classifier: "heuristic" | "llm" | "auto"`):** determinismo donde
 se pueda; LLM para rellenar nodos de baja confianza o cuando el usuario pide
@@ -148,21 +149,32 @@ latencia y no-determinismo, por eso vive detrás de la interfaz.
 
 ---
 
-## 6. API propuesta
+## 6. API (implementada)
 
 ```
 POST /api/v1/diagram/normalize
 {
-  "xml_content": "...",
-  "c4_level": 2,                      // 1 | 2 | 3 (declarado por el usuario)
-  "classifier": "auto",              // heuristic | llm | auto
-  "render_preview": false             // opcional: PNG de QA vía worker headless
+  "xml_content": "...",          // XML Draw.io crudo (mxfile | mxGraphModel)
+  "c4_level": 2,                 // 1 | 2 | 3 (declarado por el usuario)
+  "classifier": "heuristic",    // heuristic | llm | auto
+  "title_block": { ... },       // opcional: project, title, doc_type, drawn_by, ...
+  "run_compliance_check": false  // opcional: linter sobre el XML de salida
 }
-→ { "xml_c4": "...", "report": { typed_nodes, repairs, low_confidence, ... } }
+→ {
+    "xml_c4": "...",
+    "report": {
+      "node_count", "edge_count", "inferred_edges", "grounded_nodes",
+      "type_histogram", "low_confidence", "scale", "overflow",
+      "sheet", "orientation", "engine",
+      "sheets",             // hojas generadas (≥2 si hubo descomposición)
+      "cross_sheet_edges"   // aristas que cruzan hojas (no se dibujan)
+    },
+    "compliance": null | { level, violations, ... }
+  }
 ```
 
-Síncrono (el trabajo es de ms-segundos). Conserva la validación temprana del
-patrón actual.
+Síncrono (ms-segundos). Auth opcional por API key y rate limiting por IP.
+Ver `docs/USER_GUIDE.md §4` para ejemplos completos.
 
 ---
 
