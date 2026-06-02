@@ -1,17 +1,24 @@
 """
-Emisión C4 + hoja de ingeniería (ver docs/C4_NORMALIZER_DESIGN.md §4).
+Emisión C4 + hoja de ingeniería (ver docs/C4_NORMALIZER_DESIGN.md §4 y §8).
 
-El layout lo provee un motor intercambiable (ELK real o fallback por capas).
-Si el motor entrega rutas ortogonales (ELK), las líneas se dibujan con esos
-quiebres (esquivan las cajas); si no, se enrutan por lado (peine). La página se
-ajusta al contenido (1:1, mínimo blanco) con marco + cajetín ISO 7200.
+El layout lo provee un motor intercambiable (ELK real o fallback por capas). Si el
+motor entrega rutas ortogonales (ELK), las líneas se dibujan con esos quiebres; si
+no, se enrutan por lado. La página se ajusta al contenido (1:1, mínimo blanco) con
+marco + cajetín ISO 7200.
+
+**Multi-hoja:** si el diagrama no cabe ni al mínimo (`overflow`) y tiene ≥2
+boundaries de nivel superior, se descompone en una hoja por boundary (vista de
+deployment) más una hoja "Contexto" con personas/sistemas. Cada hoja se diagrama,
+escala y rotula por separado ("Hoja N de M"). Las aristas que cruzan hojas se
+cuentan (no se dibujan ni se inventan).
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass, replace
 from xml.sax.saxutils import escape
 
-from c4norm.layout import engine_name, get_layout_engine
+from c4norm.layout import LayoutEngine, engine_name, get_layout_engine
 from c4norm.model import (
     C4_SPEC,
     RELATIONSHIP_STYLE,
@@ -32,6 +39,20 @@ _BASE_FONT = 12
 _MIN_SCALE = 0.45
 
 
+@dataclass
+class EmitResult:
+    """Resultado de la emisión (1 o varias hojas)."""
+
+    xml: str
+    scale: str
+    overflow: bool
+    engine: str
+    sheet: str
+    orientation: str
+    sheets: int = 1
+    cross_sheet_edges: int = 0
+
+
 # =============================================================================
 # Encuadre y escala
 # =============================================================================
@@ -46,6 +67,12 @@ def _content_bbox(diagram: Diagram) -> tuple[float, float]:
     maxx = max(n.x + n.width for n in top)
     maxy = max(n.y + n.height for n in top)
     return max(1.0, maxx - minx), max(1.0, maxy - miny)
+
+
+def _scale_only(diagram: Diagram, area: DrawArea) -> float:
+    """Escala a la que el contenido cabe en `area` (sin mutar el diagrama)."""
+    cw, ch = _content_bbox(diagram)
+    return min(1.0, area.width / cw, area.height / ch)
 
 
 def _fit(diagram: Diagram, area: DrawArea) -> tuple[float, bool]:
@@ -80,6 +107,56 @@ def _fit(diagram: Diagram, area: DrawArea) -> tuple[float, bool]:
         if e.route:
             e.route = [tx(px, py) for px, py in e.route]
     return s, overflow
+
+
+# =============================================================================
+# Descomposición en hojas (multi-hoja)
+# =============================================================================
+
+
+def _children_map(diagram: Diagram) -> dict[str, list[Node]]:
+    children: dict[str, list[Node]] = {}
+    for n in diagram.nodes:
+        if n.parent:
+            children.setdefault(n.parent, []).append(n)
+    return children
+
+
+def _subtree_ids(root_id: str, children: dict[str, list[Node]]) -> set[str]:
+    ids = {root_id}
+    stack = [root_id]
+    while stack:
+        cur = stack.pop()
+        for kid in children.get(cur, []):
+            if kid.id not in ids:
+                ids.add(kid.id)
+                stack.append(kid.id)
+    return ids
+
+
+def _sub_diagram(diagram: Diagram, ids: set[str], name: str) -> Diagram:
+    nodes = [n for n in diagram.nodes if n.id in ids]
+    edges = [e for e in diagram.edges if e.source in ids and e.target in ids]
+    return Diagram(name=name, nodes=nodes, edges=edges)
+
+
+def _decompose(diagram: Diagram) -> list[tuple[str, Diagram]]:
+    """Una hoja por boundary de nivel superior + una hoja 'Contexto'."""
+    children = _children_map(diagram)
+    top = [n for n in diagram.nodes if not n.parent]
+    boundaries = [n for n in top if n.c4_type is C4Type.DEPLOYMENT_NODE]
+    context = [n for n in top if n.c4_type is not C4Type.DEPLOYMENT_NODE]
+
+    pages: list[tuple[str, Diagram]] = []
+    if context:
+        ids: set[str] = set()
+        for n in context:
+            ids |= _subtree_ids(n.id, children)
+        pages.append(("Contexto", _sub_diagram(diagram, ids, "Contexto")))
+    for b in boundaries:
+        title = b.c4_name or b.id
+        pages.append((title, _sub_diagram(diagram, _subtree_ids(b.id, children), title)))
+    return pages
 
 
 # =============================================================================
@@ -126,23 +203,116 @@ def emit_c4(
     c4_level: int,
     *,
     title_block: TitleBlock | None = None,
-) -> tuple[str, float, bool, str]:
-    """Emite el XML C4 completo. Devuelve (xml, escala, overflow, motor)."""
-    tb = title_block or TitleBlock(title=diagram.name)
+) -> EmitResult:
+    """Emite el XML C4 completo (1 hoja, o varias si desborda y hay ≥2 boundaries)."""
+    base_tb = title_block or TitleBlock(title=diagram.name)
 
     engine = get_layout_engine()
-    engine.run(diagram)
     motor = engine_name(engine)
 
+    engine.run(diagram)  # layout completo: decide overflow y sirve para 1 hoja
     cw, ch = _content_bbox(diagram)
-    page_w, page_h, area, tb.fmt, tb.orientation = fit_page(cw, ch)
-    scale, overflow = _fit(diagram, area)
-    tb.scale = scale_string(scale)
+    _, _, area, _, _ = fit_page(cw, ch)
+    boundaries = [n for n in diagram.nodes if not n.parent and n.c4_type is C4Type.DEPLOYMENT_NODE]
+    needs_split = _scale_only(diagram, area) < _MIN_SCALE and len(boundaries) >= 2
+
+    if not needs_split:
+        block, scale, overflow, fmt, orientation = _emit_page(
+            engine,
+            diagram,
+            base_tb,
+            diagram_id=f"c4norm-{c4_level}",
+            diagram_name=f"{diagram.name} (C4 N{c4_level})",
+            tb_title=base_tb.title,
+            sheet_n=1,
+            sheet_m=1,
+            relayout=False,
+        )
+        xml = "\n".join(['<mxfile host="c4norm" type="device">', *block, "</mxfile>", ""])
+        return EmitResult(
+            xml=xml,
+            scale=scale_string(scale),
+            overflow=overflow,
+            engine=motor,
+            sheet=fmt,
+            orientation=orientation,
+            sheets=1,
+            cross_sheet_edges=0,
+        )
+
+    # Multi-hoja: una hoja por boundary + "Contexto".
+    pages = _decompose(diagram)
+    blocks: list[str] = []
+    worst_scale = 1.0
+    any_overflow = False
+    drawn_edges = 0
+    first_fmt, first_orientation = "A3", "landscape"
+    for i, (title, sub) in enumerate(pages, start=1):
+        block, scale, overflow, fmt, orientation = _emit_page(
+            engine,
+            sub,
+            base_tb,
+            diagram_id=f"c4norm-{c4_level}-{i}",
+            diagram_name=f"{title} (C4 N{c4_level} · {i}/{len(pages)})",
+            tb_title=title,
+            sheet_n=i,
+            sheet_m=len(pages),
+            relayout=True,
+        )
+        blocks += block
+        worst_scale = min(worst_scale, scale)
+        any_overflow = any_overflow or overflow
+        drawn_edges += sum(1 for e in sub.edges if e.source and e.target)
+        if i == 1:
+            first_fmt, first_orientation = fmt, orientation
+
+    total_edges = sum(1 for e in diagram.edges if e.source and e.target)
+    cross = max(0, total_edges - drawn_edges)
+    xml = "\n".join(['<mxfile host="c4norm" type="device">', *blocks, "</mxfile>", ""])
+    return EmitResult(
+        xml=xml,
+        scale=scale_string(worst_scale),
+        overflow=any_overflow,
+        engine=motor,
+        sheet=first_fmt,
+        orientation=first_orientation,
+        sheets=len(pages),
+        cross_sheet_edges=cross,
+    )
+
+
+def _emit_page(
+    engine: LayoutEngine,
+    sub: Diagram,
+    base_tb: TitleBlock,
+    *,
+    diagram_id: str,
+    diagram_name: str,
+    tb_title: str,
+    sheet_n: int,
+    sheet_m: int,
+    relayout: bool,
+) -> tuple[list[str], float, bool, str, str]:
+    """Diagrama (layout + ajuste + serialización) de UNA hoja. Devuelve (lines, escala, overflow, fmt, orientación)."""
+    if relayout:
+        engine.run(sub)
+
+    cw, ch = _content_bbox(sub)
+    page_w, page_h, area, fmt, orientation = fit_page(cw, ch)
+    scale, overflow = _fit(sub, area)
+    tb = replace(
+        base_tb,
+        title=tb_title,
+        fmt=fmt,
+        orientation=orientation,
+        scale=scale_string(scale),
+        sheet_n=sheet_n,
+        sheet_m=sheet_m,
+    )
     font = max(7, round(_BASE_FONT * scale))
 
     lines: list[str] = [
-        '<mxfile host="c4norm" type="device">',
-        f'  <diagram id="c4norm-{c4_level}" name="{_attr(diagram.name)} (C4 N{c4_level})">',
+        f'  <diagram id="{_attr(diagram_id)}" name="{_attr(diagram_name)}">',
         f'    <mxGraphModel dx="1400" dy="900" grid="0" gridSize="10" guides="1" '
         f'tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" '
         f'pageWidth="{page_w}" pageHeight="{page_h}" math="0" shadow="0">',
@@ -151,15 +321,14 @@ def emit_c4(
         '        <mxCell id="1" parent="0" />',
     ]
     lines += render_frame_and_title_block(page_w, page_h, tb)
-    for node in diagram.nodes:
+    for node in sub.nodes:
         lines.append(_emit_node(node, font))
-    abs_pos = _absolute_positions(diagram)
-    for edge in diagram.edges:
+    abs_pos = _absolute_positions(sub)
+    for edge in sub.edges:
         if edge.source and edge.target:
             lines.append(_emit_edge(edge, font, abs_pos))
-
-    lines += ["      </root>", "    </mxGraphModel>", "  </diagram>", "</mxfile>", ""]
-    return "\n".join(lines), scale, overflow, motor
+    lines += ["      </root>", "    </mxGraphModel>", "  </diagram>"]
+    return lines, scale, overflow, fmt, orientation
 
 
 def _style_for(node: Node) -> str:

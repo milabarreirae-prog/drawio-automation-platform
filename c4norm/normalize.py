@@ -35,6 +35,8 @@ class NormalizeReport:
     sheet: str = "A3"
     orientation: str = "landscape"
     engine: str = ""
+    sheets: int = 1
+    cross_sheet_edges: int = 0
 
 
 def normalize(
@@ -69,7 +71,7 @@ def normalize(
             low_conf.append(node.id)
 
     tb = title_block or TitleBlock(title=diagram.name)
-    xml_c4, scale, overflow, motor = emit_c4(diagram, c4_level, title_block=tb)
+    result = emit_c4(diagram, c4_level, title_block=tb)
 
     report = NormalizeReport(
         diagram_name=diagram.name,
@@ -80,10 +82,12 @@ def normalize(
         grounded_nodes=grounded,
         type_histogram=histogram,
         low_confidence=low_conf,
-        scale=tb.scale,
-        overflow=overflow,
-        sheet=tb.fmt,
-        orientation=tb.orientation,
-        engine=motor,
+        scale=result.scale,
+        overflow=result.overflow,
+        sheet=result.sheet,
+        orientation=result.orientation,
+        engine=result.engine,
+        sheets=result.sheets,
+        cross_sheet_edges=result.cross_sheet_edges,
     )
-    return xml_c4, report
+    return result.xml, report
