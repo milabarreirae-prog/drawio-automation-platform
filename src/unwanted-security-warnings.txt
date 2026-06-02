@@ -1,3 +1,0 @@
-Failed to call
-Failed to connect
-Floss manager service
