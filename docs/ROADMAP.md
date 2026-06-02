@@ -11,6 +11,8 @@ Normalizar XML crudo de Draw.io (de IA) a **C4 conforme a estándar** para Confl
 
 - Motor `c4norm`: parse + saneo (mojibake, formatos), modelo lógico, reparación de
   aristas huérfanas y contención solo-visual.
+- **Anclado** de nodos de infra sueltos (Container/Database/Component) a una zona de
+  conectividad cuando hay boundaries (idempotente).
 - Clasificadores C4 tras la interfaz `C4Classifier`: **heurístico** (determinista) y
   **LLM** (OpenAI-compatible, provider-agnóstico; modos `heuristic` / `llm` / `auto`).
   El LLM solo re-tipa nodos existentes (no inventa); tipo inválido → conserva el heurístico.
@@ -22,8 +24,6 @@ Normalizar XML crudo de Draw.io (de IA) a **C4 conforme a estándar** para Confl
 
 ## ⏳ Pendiente
 
-- **Anclado completo** de nodos de red flotantes a una zona de conectividad (hoy parcial;
-  ver C4_NORMALIZER_DESIGN.md §10).
 - **Multi-hoja**: cuando el contenido no cabe ni al mínimo se marca `overflow`; falta
   partir en varias hojas / vistas por boundary.
 - **Documentación de usuario** (guía + ejemplos de la API).
