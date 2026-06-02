@@ -109,17 +109,39 @@ La imagen incluye Node.js + elkjs, así que el contenedor usa ELK real.
 | `ARCHIMATE_LICENSE_KEY` | (vacío) | Habilita stencils ArchiMate en compliance |
 | `C4NORM_LAYOUT` | auto | Forzar motor de layout: `elk` o `layered` |
 | `C4NORM_NODE_BIN` | — | Ruta a Node si no está en el PATH |
-| `C4NORM_LLM_API_BASE` | `https://api.openai.com/v1` | Endpoint OpenAI-compatible |
-| `C4NORM_LLM_API_KEY` | (vacío) | Clave del LLM (requerida para `--classifier llm`) |
+| `C4NORM_LLM_API_BASE` | `https://api.openai.com/v1` | Endpoint OpenAI-compatible (ver §7) |
+| `C4NORM_LLM_API_KEY` | (vacío) | Clave del LLM (requerida para `--classifier llm/auto`) |
 | `C4NORM_LLM_MODEL` | `gpt-4o-mini` | Modelo del LLM |
 
 ## 7. Clasificador LLM
 
-`--classifier llm` (o `auto`) usa un LLM **OpenAI-compatible** para corregir el tipo
-C4 de diagramas fuera de estándar. Requiere `C4NORM_LLM_API_KEY`. El LLM **solo
-re-tipa nodos existentes**: no inventa nodos ni datos; si devuelve un tipo inválido,
-se conserva la clasificación heurística. `auto` usa el LLM solo en nodos de baja
-confianza y cae a heurístico si no hay clave configurada.
+### Modos
+| Modo | Comportamiento |
+|------|----------------|
+| `heuristic` | Determinista. Sin coste. Por defecto. |
+| `llm` | Envía todos los nodos al LLM. Requiere `C4NORM_LLM_API_KEY`. |
+| `auto` | Heurístico completo + LLM solo en nodos de **baja confianza** (sin `c4Type` explícito). Cae a `heuristic` si no hay clave. Recomendado para producción. |
+
+El LLM **nunca inventa**: solo re-tipa nodos existentes; tipo inválido → conserva el heurístico.
+Diagramas con más de 20 nodos se procesan en lotes automáticamente.
+
+### Proveedores compatibles
+
+Cualquier endpoint `/chat/completions` con soporte de `response_format: json_object`:
+
+| Proveedor | `C4NORM_LLM_API_BASE` | Modelos |
+|-----------|----------------------|---------|
+| **Alibaba Cloud MaaS** _(conectado)_ | `https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1` | `qwen3.7-max`, `qwen3.6-plus`, `qwen3.6-flash`, `deepseek-v4-pro`, `deepseek-v4-flash`, `kimi-k2.6`, `glm-5.1` … |
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o`, `gpt-4o-mini` |
+| Azure OpenAI | `https://<resource>.openai.azure.com/openai/deployments/<deploy>` | modelo por deployment |
+
+```bash
+# Ejemplo — Alibaba MaaS con qwen3.7-max
+export C4NORM_LLM_API_BASE=https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1
+export C4NORM_LLM_API_KEY=<clave>
+export C4NORM_LLM_MODEL=qwen3.7-max
+python -m c4norm crudo.drawio.xml --level 2 --classifier auto -o salida.drawio.xml
+```
 
 ## 8. Multi-hoja
 
@@ -142,4 +164,6 @@ descripción del nodo/relación.
 | Acentos rotos (`PeticiÃ³n`) | Mojibake del round-trip de Confluence; c4norm lo sanea al parsear. |
 | `422` al normalizar | XML sin diagrama, vacío, o `c4_level` fuera de 1–3. |
 | Error `requiere C4NORM_LLM_API_KEY` (422 en API) | `--classifier llm`/`auto` sin clave: defínela o usa `heuristic`. |
+| Timeout o error de red al clasificar | Diagrama muy grande (>20 nodos por lote). La segunda llamada es automática; si persiste, prueba `--classifier heuristic`. |
+| El LLM devuelve tipos distintos a la heurística | Normal — el LLM puede mejorar la clasificación (p.ej. distinguir Person vs Software System). Verifica el resultado en draw.io. |
 | `lxml` no instala | Usa Python 3.11/3.12 (no 3.14). |
