@@ -27,6 +27,9 @@ core
 # c4norm: salidas generadas (los crudos de entrada sí se versionan)
 tests/fixtures/out_*.drawio.xml
 
+# secrets — nunca versionar
+.env
+
 # repository
 patch.diff
 package.json

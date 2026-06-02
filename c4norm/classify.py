@@ -184,12 +184,16 @@ class LLMClassifier(C4Classifier):
         model: str | None = None,
         only_low_confidence: bool = False,
         retries: int = 2,
+        batch_size: int = 20,
+        timeout: float = 120,
     ) -> None:
         self.api_base = api_base or os.environ.get("C4NORM_LLM_API_BASE", "https://api.openai.com/v1")
         self.api_key = api_key if api_key is not None else os.environ.get("C4NORM_LLM_API_KEY", "")
         self.model = model or os.environ.get("C4NORM_LLM_MODEL", "gpt-4o-mini")
         self.only_low_confidence = only_low_confidence
         self.retries = retries
+        self.batch_size = batch_size
+        self.timeout = timeout
         self._chat = chat
         self._heuristic = HeuristicClassifier()
 
@@ -204,8 +208,8 @@ class LLMClassifier(C4Classifier):
         if not targets:
             return
 
-        # 3) Pedir el re-tipado y aplicarlo SOLO a nodos existentes.
-        retyped = self._ask(targets, diagram.edges, c4_level)
+        # 3) Pedir el re-tipado en lotes y aplicarlo SOLO a nodos existentes.
+        retyped = self._ask_batched(targets, diagram.edges, c4_level)
         by_id = {n.id: n for n in diagram.nodes}
         for node_id, fields in retyped.items():
             node = by_id.get(node_id)
@@ -252,10 +256,20 @@ class LLMClassifier(C4Classifier):
                     {"role": "user", "content": prompt},
                 ],
             },
-            timeout=60,
+            timeout=self.timeout,
         )
         response.raise_for_status()
         return str(response.json()["choices"][0]["message"]["content"])
+
+    def _ask_batched(self, nodes: list[Node], edges: list[Edge], c4_level: int) -> dict[str, object]:
+        """Procesa los nodos en lotes (máx. ``batch_size``) y combina los resultados."""
+        if len(nodes) <= self.batch_size:
+            return self._ask(nodes, edges, c4_level)
+        combined: dict[str, object] = {}
+        for i in range(0, len(nodes), self.batch_size):
+            chunk = nodes[i : i + self.batch_size]
+            combined.update(self._ask(chunk, edges, c4_level))
+        return combined
 
     def _ask(self, nodes: list[Node], edges: list[Edge], c4_level: int) -> dict[str, object]:
         chat = self._chat_fn()
