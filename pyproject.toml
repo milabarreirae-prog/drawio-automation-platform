@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "drawio-automation-platform"
 version = "0.1.0"
-description = "Enterprise Draw.io automation platform with API, async rendering, and compliance validation"
+description = "Draw.io → C4 normalizer: turns raw (often AI-generated) Draw.io XML into standards-compliant C4 diagrams"
 readme = "README.md"
 license = {text = "AGPL-3.0"}
 authors = [
