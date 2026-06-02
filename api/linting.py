@@ -13,7 +13,6 @@ Raises ValueError with structured details on policy violations.
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 from lxml import etree
 
@@ -258,7 +257,7 @@ class XMLLinter:
         result = linter.full_validation(xml_content)
     """
 
-    def __init__(self, settings: Optional[Settings] = None):
+    def __init__(self, settings: Settings | None = None):
         self.settings = settings or get_settings()
 
     def full_validation(self, xml_content: str) -> ComplianceCheck:
@@ -332,9 +331,7 @@ class XMLLinter:
                 )
 
         # Determine compliance level
-        if not xml_well_formed:
-            level = ComplianceLevel.BLOCKED
-        elif (color_violations or stencil_violations) or (archimate_needed and not archimate_valid):
+        if not xml_well_formed or (color_violations or stencil_violations) or (archimate_needed and not archimate_valid):
             level = ComplianceLevel.BLOCKED
         elif errors:
             level = ComplianceLevel.WARNING

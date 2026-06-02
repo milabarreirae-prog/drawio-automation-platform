@@ -45,10 +45,16 @@ CLI: `python -m c4norm <in.drawio.xml> --level {1|2|3} -o <out.xml>`.
 - `sheet.py` — hoja ajustada al contenido (1:1) + cajetín ISO 7200.
 - `emit.py` — serializa a XML C4 (`<object>` tipados + estilo canónico + waypoints).
 
-### Reusable API/compliance (`api/`)
-`api/{config,linting,schemas}.py` aportan validación de compliance (lxml + políticas)
-y schemas Pydantic reutilizables; `api/main.py` es el scaffold FastAPI (pendiente de
-repurposing a un endpoint `/normalize`).
+### API (`api/`)
+API FastAPI **síncrona** que expone el normalizador:
+- `POST /api/v1/diagram/normalize` — XML crudo + nivel C4 (+ cajetín opcional) →
+  llama a `c4norm.normalize` y devuelve XML C4 + reporte; compliance opcional.
+- `GET /health` (incluye el motor de layout disponible) y `GET /metrics` (Prometheus).
+- Auth opcional por API key (Bearer) y rate limiting por IP.
+
+`api/linting.py` aporta la validación de compliance opcional (lxml + políticas) y
+`api/schemas.py` los modelos Pydantic. El trabajo es de ms-segundos: no hay cola ni
+workers.
 
 ## Origen (fork)
 

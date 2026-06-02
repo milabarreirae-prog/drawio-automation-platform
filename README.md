@@ -59,13 +59,36 @@ python -m c4norm crudo.drawio.xml --level 2 \
 El comando escribe el XML C4 en la salida e imprime un resumen en `stderr`
 (nodos, aristas, escala, hoja, motor de layout).
 
+## Uso como servicio (API)
+
+Además del CLI hay una API FastAPI **síncrona** (docs interactivas en `/docs`):
+
+```bash
+uvicorn api.main:app --reload     # http://localhost:8000
+```
+
+| Endpoint | Qué hace |
+|----------|----------|
+| `POST /api/v1/diagram/normalize` | Normaliza XML crudo → C4. Cuerpo: `xml_content`, `c4_level`, `classifier`, `title_block`, `run_compliance_check` |
+| `GET /health` | Estado + motor de layout disponible (`elk` / `layered`) |
+| `GET /metrics` | Métricas Prometheus |
+
+```bash
+curl -s http://localhost:8000/api/v1/diagram/normalize \
+  -H "Content-Type: application/json" \
+  -d '{"xml_content":"<mxGraphModel>...</mxGraphModel>","c4_level":2}'
+# -> { "xml_c4": "...", "report": { ... }, "compliance": null }
+```
+
+Auth opcional por API key (`API_KEY` → cabecera `Authorization: Bearer <key>`) y rate limiting por IP.
+
 ## Estructura
 
 | Ruta | Contenido |
 |------|-----------|
 | `c4norm/` | Motor: parse, modelo, clasificación, anclado, dimensionado, emisión |
 | `c4norm/layout/` | Layout intercambiable: `ElkLayout` (ELK vía Node) · `LayeredLayout` (Python) |
-| `api/` | Validación de compliance (lxml) y schemas Pydantic; scaffold FastAPI (pendiente) |
+| `api/` | API FastAPI síncrona (`/normalize`), compliance (lxml) y schemas Pydantic |
 | `docs/` | Diseño, arquitectura y hoja de ruta |
 | `tests/` | Pruebas pytest del motor |
 
@@ -73,6 +96,17 @@ El comando escribe el XML C4 en la salida e imprime un resumen en `stderr`
 
 ```bash
 pytest
+```
+
+## Docker
+
+La imagen incluye Python + Node.js (para el layout ELK real):
+
+```bash
+docker compose up --build          # API en http://localhost:8000
+# o, sin compose:
+docker build -t drawio-c4-normalizer .
+docker run --rm -p 8000:8000 drawio-c4-normalizer
 ```
 
 ## Licencia
