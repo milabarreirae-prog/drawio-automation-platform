@@ -103,6 +103,29 @@ def test_auto_uses_llm_with_key(monkeypatch: pytest.MonkeyPatch) -> None:
     assert clf.only_low_confidence is True
 
 
+def test_batching_splits_large_diagrams() -> None:
+    """Diagramas con más nodos que batch_size se procesan en varios lotes."""
+    call_count = {"n": 0}
+    received_ids: list[list[str]] = []
+
+    def fake_chat(prompt: str) -> str:
+        call_count["n"] += 1
+        import json as _j
+
+        data = _j.loads(prompt.split("NODOS:\n")[1].split("\n\nARISTAS:")[0])
+        ids = [n["id"] for n in data]
+        received_ids.append(ids)
+        return _j.dumps({"nodes": {nid: {"c4Type": "Container"} for nid in ids}})
+
+    nodes = [Node(id=f"n{i}", raw_label=f"Nodo {i}", shape="rectangle") for i in range(5)]
+    d = Diagram(name="t", nodes=nodes)
+    LLMClassifier(chat=fake_chat, batch_size=2).classify(d, 2)
+
+    assert call_count["n"] == 3  # 5 nodos / lote-2 = 3 llamadas (2+2+1)
+    total_ids = [nid for batch in received_ids for nid in batch]
+    assert sorted(total_ids) == [f"n{i}" for i in range(5)]
+
+
 def test_only_low_confidence_skips_explicit_nodes() -> None:
     seen: dict[str, str] = {}
 
