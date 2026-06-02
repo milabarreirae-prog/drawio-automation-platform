@@ -7,7 +7,8 @@ plugin de Draw.io).
 
 > **Diseño autoritativo:** [`docs/C4_NORMALIZER_DESIGN.md`](docs/C4_NORMALIZER_DESIGN.md) ·
 > **Arquitectura:** [`ARCHITECTURE.md`](ARCHITECTURE.md) ·
-> **Hoja de ruta:** [`docs/ROADMAP.md`](docs/ROADMAP.md)
+> **Hoja de ruta:** [`docs/ROADMAP.md`](docs/ROADMAP.md) ·
+> **Guía de usuario:** [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)
 
 ## Pipeline
 
