@@ -2,9 +2,10 @@
 Anclaje de nodos flotantes ("nada flotando en el espacio").
 
 Si el diagrama tiene boundaries (DeploymentNode) y hay nodos de infraestructura
-(Container/Database) sueltos al nivel raíz, se agrupan dentro de un boundary
-sintético "Red / Conectividad". Las personas y los sistemas externos SÍ pueden
-quedar fuera de los boundaries (es C4 correcto), así que no se tocan.
+(Container / Database / Component) sueltos al nivel raíz, se agrupan dentro de un
+boundary sintético "Red / Conectividad". Las personas y los sistemas (que en C4
+pueden vivir al nivel de contexto) NO se tocan: pueden quedar fuera de los
+boundaries legítimamente.
 """
 
 from __future__ import annotations
@@ -13,21 +14,24 @@ from c4norm.model import C4Type, Diagram, Node
 
 _SYNTHETIC_ID = "c4norm-conectividad"
 
+# Infraestructura que no debe quedar suelta cuando hay sitios/boundaries.
+_INFRA_TYPES = (C4Type.CONTAINER, C4Type.DATABASE, C4Type.COMPONENT)
+
 
 def ground_floating_nodes(diagram: Diagram) -> int:
     """Ancla nodos de infra flotantes en un boundary 'Red / Conectividad'.
 
-    Devuelve cuántos nodos ancló (0 si no aplica).
+    Devuelve cuántos nodos ancló (0 si no aplica). Es **idempotente**: si la zona
+    sintética ya existe, no vuelve a anclar.
     """
+    if any(n.id == _SYNTHETIC_ID for n in diagram.nodes):
+        return 0  # ya anclado
+
     has_boundary = any(n.c4_type is C4Type.DEPLOYMENT_NODE for n in diagram.nodes)
     if not has_boundary:
         return 0  # un flujo simple sin sitios no necesita anclaje
 
-    floaters = [
-        n
-        for n in diagram.nodes
-        if n.parent is None and n.c4_type in (C4Type.CONTAINER, C4Type.DATABASE)
-    ]
+    floaters = [n for n in diagram.nodes if n.parent is None and n.c4_type in _INFRA_TYPES]
     if not floaters:
         return 0
 

@@ -228,9 +228,9 @@ estéticos sino de disciplina (ISO/ANSI / vieja escuela):
   se marca *overflow* (futuro: multi-hoja).
 - **Layout que refleja la jerarquía** (implementado: árbol vertical TB; futuro:
   ELK con minimización de cruces y ruteo ortogonal). Nunca "todo en una fila".
-- **Nada flotando** (parcial): todo elemento debe estar anclado en un
-  boundary/sitio y su conectividad explícita (ruta, proveedor, puerto). Pendiente:
-  anclar nodos de red sueltos a una zona de conectividad.
+- **Nada flotando** (implementado): los nodos de infra sueltos
+  (Container/Database/Component) se anclan en una zona de conectividad cuando hay
+  boundaries (`c4norm/ground.py`); personas y sistemas pueden quedar fuera (C4 válido).
 
 ### Principio innegociable: el motor NUNCA inventa
 
