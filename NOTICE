@@ -1,34 +1,21 @@
 # NOTICE
 
-This repository contains upstream and fork-specific work.
-
 ## Upstream Attribution
 
-The runtime base is derived from:
+This project began as a fork of:
 - Project: rlespinasse/docker-drawio-desktop-headless
 - URL: https://github.com/rlespinasse/docker-drawio-desktop-headless
 - License: MIT
 
-That upstream project provides the headless Draw.io Desktop container runtime,
-entrypoint scripts, and related packaging logic used as the base for this fork.
+The original headless Draw.io Desktop runtime from that project has since been
+removed; its MIT license terms are retained in `LICENSE`.
 
-## Fork Additions
+## Project
 
-This fork adds an automation platform including:
-- FastAPI API endpoints
-- Redis/ARQ-backed async task processing
-- Compliance validation for XML, colors, stencils, and ArchiMate licensing
-- Stencil metadata, fetch, and license verification tooling
-- Worker-side upload and webhook integration
+This repository now provides a Draw.io → C4 normalizer (`c4norm/`) and reusable
+compliance/validation helpers (`api/`).
 
 ## Draw.io Attribution
 
-This project relies on Draw.io / diagrams.net software and related packaging
-provided by JGraph Ltd and associated upstream projects.
-
-This repository is not affiliated with or endorsed by JGraph Ltd.
-
-## Stencil Attribution
-
-Enterprise stencil sets referenced by this fork remain subject to their own
-vendor license terms. See `THIRD_PARTY_LICENSES.md` for a summary of those terms.
+This project processes Draw.io / diagrams.net XML produced with software by
+JGraph Ltd. This repository is not affiliated with or endorsed by JGraph Ltd.

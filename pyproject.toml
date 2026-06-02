@@ -7,7 +7,7 @@ name = "drawio-automation-platform"
 version = "0.1.0"
 description = "Draw.io → C4 normalizer: turns raw (often AI-generated) Draw.io XML into standards-compliant C4 diagrams"
 readme = "README.md"
-license = {text = "AGPL-3.0"}
+license = {text = "MIT"}
 authors = [
     {name = "drawio-automation-platform contributors"},
 ]
@@ -16,7 +16,7 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Information Technology",
-    "License :: OSI Approved :: GNU Affero General Public License v3 (AGPL-3.0)",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
@@ -50,9 +50,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/drawio-automation-platform/drawio-automation-platform"
-"Bug Tracker" = "https://github.com/drawio-automation-platform/drawio-automation-platform/issues"
-"Source Code" = "https://github.com/drawio-automation-platform/drawio-automation-platform"
+Homepage = "https://github.com/milabarreirae-prog/drawio-automation-platform"
+"Bug Tracker" = "https://github.com/milabarreirae-prog/drawio-automation-platform/issues"
+"Source Code" = "https://github.com/milabarreirae-prog/drawio-automation-platform"
 "Upstream Project" = "https://github.com/rlespinasse/docker-drawio-desktop-headless"
 
 [tool.setuptools]
@@ -86,7 +86,7 @@ markers = [
 
 [tool.coverage.run]
 source = ["api", "c4norm"]
-omit = ["tests/*", "scripts/*"]
+omit = ["tests/*"]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -154,7 +154,6 @@ explicit_package_bases = true
 module = [
     "arq.*",
     "arq.connections",
-    "boto3.*",
     "dotenv.*",
 ]
 ignore_missing_imports = true
