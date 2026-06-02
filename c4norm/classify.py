@@ -12,10 +12,17 @@ Asigna a cada nodo su ``c4Type`` y extrae ``c4Name``/``c4Description``/
 
 from __future__ import annotations
 
+import contextlib
+import json
+import os
 import re
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
 from c4norm.model import C4Type, Diagram, Edge, Node
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 # Pistas léxicas que sugieren "externo" (sistema/BD en gris).
 _EXTERNAL_HINTS = ("externo", "external", "tercero", "proveedor externo", "sinacofi", "equifax", "servipag")
@@ -75,10 +82,8 @@ class HeuristicClassifier(C4Classifier):
     def _infer_type(self, node: Node, c4_level: int) -> C4Type:
         # 1) Respetar el c4Type explícito que haya emitido la IA.
         if node.explicit_c4_type:
-            try:
+            with contextlib.suppress(ValueError):
                 return C4Type(node.explicit_c4_type)
-            except ValueError:
-                pass
 
         shape = node.shape.lower()
         style = (";".join(f"{k}={v}" for k, v in node.raw_style.items())).lower()
@@ -106,28 +111,184 @@ class HeuristicClassifier(C4Classifier):
         edge.c4_description = text
 
 
+# Tipos C4 válidos como texto (sin Relationship, que es para aristas).
+_C4_TYPE_VALUES = tuple(t.value for t in C4Type if t is not C4Type.RELATIONSHIP)
+
+_LLM_SYSTEM_PROMPT = (
+    "Eres un experto en el modelo C4 de arquitectura de software. Recibes los nodos "
+    "y aristas de un diagrama Draw.io (a veces generado por IA, fuera de estándar) y "
+    "asignas a cada nodo su tipo C4 correcto.\n"
+    "Reglas innegociables:\n"
+    f"- c4Type debe ser EXACTAMENTE uno de: {', '.join(_C4_TYPE_VALUES)}.\n"
+    "- NO inventes nodos, aristas ni datos: usa solo la información dada.\n"
+    "- Si falta un dato (descripción, tecnología), deja el campo como cadena vacía; "
+    "jamás lo fabriques.\n"
+    "- Conserva los nombres salvo que estén sucios (mojibake, prefijos de metadata).\n"
+    'Responde EXCLUSIVAMENTE un objeto JSON con la forma: '
+    '{"nodes": {"<id>": {"c4Type": "...", "c4Name": "...", "c4Description": "...", "c4Technology": "..."}}}.'
+)
+
+
+def _is_low_confidence(node: Node) -> bool:
+    """Nodo cuyo tipo lo adivinó la heurística (la IA no emitió c4Type explícito)."""
+    return not node.explicit_c4_type
+
+
+def _build_llm_prompt(nodes: list[Node], edges: list[Edge], c4_level: int) -> str:
+    """Prompt de usuario: nodos + aristas + nivel C4 declarado."""
+    node_rows = [
+        {
+            "id": n.id,
+            "label": n.raw_label,
+            "shape": n.shape,
+            "heuristic_c4Type": (n.c4_type.value if n.c4_type else ""),
+        }
+        for n in nodes
+    ]
+    edge_rows = [
+        {"source": e.source, "target": e.target, "label": e.raw_label}
+        for e in edges
+        if e.source and e.target
+    ]
+    return (
+        f"Nivel C4 objetivo: {c4_level} (1=sistemas, 2=contenedores, 3=componentes).\n\n"
+        f"NODOS:\n{json.dumps(node_rows, ensure_ascii=False, indent=2)}\n\n"
+        f"ARISTAS:\n{json.dumps(edge_rows, ensure_ascii=False, indent=2)}\n\n"
+        "Devuelve el re-tipado para CADA id de NODOS."
+    )
+
+
 class LLMClassifier(C4Classifier):
     """
     Clasificador asistido por LLM (API tipo OpenAI, provider-agnóstico).
 
-    STUB: requisito a futuro (corregir diagramas ya generados fuera de estándar).
-    El proveedor se configurará por entorno y se invocará con un prompt que
-    devuelva JSON validado contra schema. No implementado en el prototipo.
+    Arranca con el ``HeuristicClassifier`` (nombres/descr/tech desde las etiquetas)
+    y pide a un LLM que revise el ``c4Type`` de cada nodo. El LLM SOLO re-tipa nodos
+    existentes: no inventa nodos ni aristas, y si devuelve un ``c4Type`` inválido se
+    conserva el heurístico (principio "el motor nunca inventa").
+
+    Config por entorno (endpoint OpenAI-compatible ``/chat/completions``):
+      * ``C4NORM_LLM_API_BASE``  (def. ``https://api.openai.com/v1``)
+      * ``C4NORM_LLM_API_KEY``   (requerido para llamadas reales)
+      * ``C4NORM_LLM_MODEL``     (def. ``gpt-4o-mini``)
+
+    Para tests o proveedores alternativos se puede inyectar ``chat`` (str -> str).
     """
 
-    def __init__(self, provider: str = "openai", model: str | None = None) -> None:
-        self.provider = provider
-        self.model = model
+    def __init__(
+        self,
+        *,
+        chat: Callable[[str], str] | None = None,
+        api_base: str | None = None,
+        api_key: str | None = None,
+        model: str | None = None,
+        only_low_confidence: bool = False,
+        retries: int = 2,
+    ) -> None:
+        self.api_base = api_base or os.environ.get("C4NORM_LLM_API_BASE", "https://api.openai.com/v1")
+        self.api_key = api_key if api_key is not None else os.environ.get("C4NORM_LLM_API_KEY", "")
+        self.model = model or os.environ.get("C4NORM_LLM_MODEL", "gpt-4o-mini")
+        self.only_low_confidence = only_low_confidence
+        self.retries = retries
+        self._chat = chat
+        self._heuristic = HeuristicClassifier()
 
-    def classify(self, diagram: Diagram, c4_level: int) -> None:  # pragma: no cover
-        raise NotImplementedError(
-            "LLMClassifier es un stub pluggable para una fase futura. "
-            "Usa HeuristicClassifier en el prototipo."
+    def classify(self, diagram: Diagram, c4_level: int) -> None:
+        # 1) Baseline determinista (nombres, descripción, tecnología, tipo tentativo).
+        self._heuristic.classify(diagram, c4_level)
+
+        # 2) Nodos a revisar por el LLM.
+        targets = diagram.nodes
+        if self.only_low_confidence:
+            targets = [n for n in diagram.nodes if _is_low_confidence(n)]
+        if not targets:
+            return
+
+        # 3) Pedir el re-tipado y aplicarlo SOLO a nodos existentes.
+        retyped = self._ask(targets, diagram.edges, c4_level)
+        by_id = {n.id: n for n in diagram.nodes}
+        for node_id, fields in retyped.items():
+            node = by_id.get(node_id)
+            if node is None or not isinstance(fields, dict):
+                continue
+            raw_type = fields.get("c4Type")
+            if isinstance(raw_type, str):
+                # tipo inválido -> conservar el heurístico
+                with contextlib.suppress(ValueError):
+                    node.c4_type = C4Type(raw_type.strip())
+            for attr, key in (
+                ("c4_name", "c4Name"),
+                ("c4_description", "c4Description"),
+                ("c4_technology", "c4Technology"),
+            ):
+                value = fields.get(key)
+                if isinstance(value, str) and value.strip():
+                    setattr(node, attr, value.strip())
+
+    # -- invocación del LLM ----------------------------------------------------
+
+    def _chat_fn(self) -> Callable[[str], str]:
+        if self._chat is not None:
+            return self._chat
+        if not self.api_key:
+            raise ValueError(
+                "classifier='llm' requiere C4NORM_LLM_API_KEY (o inyectar 'chat'). "
+                "Usa classifier='heuristic' si no hay LLM configurado."
+            )
+        return self._openai_chat
+
+    def _openai_chat(self, prompt: str) -> str:  # pragma: no cover - requiere red
+        import httpx
+
+        response = httpx.post(
+            f"{self.api_base.rstrip('/')}/chat/completions",
+            headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+            json={
+                "model": self.model,
+                "temperature": 0,
+                "response_format": {"type": "json_object"},
+                "messages": [
+                    {"role": "system", "content": _LLM_SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+            },
+            timeout=60,
         )
+        response.raise_for_status()
+        return str(response.json()["choices"][0]["message"]["content"])
+
+    def _ask(self, nodes: list[Node], edges: list[Edge], c4_level: int) -> dict[str, object]:
+        chat = self._chat_fn()
+        base_prompt = _build_llm_prompt(nodes, edges, c4_level)
+        prompt = base_prompt
+        last_error: Exception | None = None
+        for _ in range(self.retries + 1):
+            raw = chat(prompt)
+            try:
+                data = json.loads(raw)
+            except (json.JSONDecodeError, TypeError) as exc:
+                last_error = exc
+                prompt = base_prompt + "\n\nIMPORTANTE: responde SOLO JSON válido."
+                continue
+            nodes_map = data.get("nodes", data) if isinstance(data, dict) else None
+            if isinstance(nodes_map, dict):
+                return nodes_map
+            last_error = ValueError("el JSON no tiene el objeto 'nodes' esperado")
+        raise ValueError(f"LLMClassifier: respuesta inválida tras {self.retries + 1} intentos: {last_error}")
 
 
 def get_classifier(mode: str = "heuristic") -> C4Classifier:
-    """Fábrica: ``heuristic`` | ``llm`` | ``auto`` (auto = heurístico por ahora)."""
+    """Fábrica: ``heuristic`` | ``llm`` | ``auto``.
+
+    - ``heuristic``: determinista, sin coste.
+    - ``llm``: revisa todos los nodos con el LLM (requiere ``C4NORM_LLM_API_KEY``).
+    - ``auto``: heurístico + LLM solo para nodos de baja confianza si hay LLM
+      configurado; si no, cae a heurístico puro.
+    """
     if mode == "llm":
         return LLMClassifier()
+    if mode == "auto":
+        if os.environ.get("C4NORM_LLM_API_KEY"):
+            return LLMClassifier(only_low_confidence=True)
+        return HeuristicClassifier()
     return HeuristicClassifier()
