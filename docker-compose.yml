@@ -1,0 +1,8 @@
+# Normalizador C4 — un solo servicio (la API). Sin dependencias externas.
+services:
+  api:
+    build: .
+    image: drawio-c4-normalizer:latest
+    ports:
+      - "8000:8000"
+    restart: unless-stopped

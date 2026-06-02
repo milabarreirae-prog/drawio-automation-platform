@@ -5,7 +5,6 @@ Tests for XML linting and compliance validation (api/linting.py).
 from __future__ import annotations
 
 import pytest
-from unittest.mock import MagicMock
 
 from api.config import Settings
 from api.linting import (
