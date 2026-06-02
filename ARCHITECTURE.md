@@ -50,16 +50,17 @@ CLI: `python -m c4norm <in.drawio.xml> --level {1|2|3} -o <out.xml>`.
 y schemas Pydantic reutilizables; `api/main.py` es el scaffold FastAPI (pendiente de
 repurposing a un endpoint `/normalize`).
 
-## Upstream fork base (sin tocar)
+## Origen (fork)
 
-El repositorio sigue siendo un fork del runtime headless de Draw.io. Su base
-(`src/`, `Dockerfile` raíz, pruebas Bats en `tests/*.bats`, workflows de
-drawio-desktop, `NOTICE`/`THIRD_PARTY_LICENSES`) se conserva por sus atribuciones
-legales; no es parte del normalizador C4 y puede retirarse aparte si se decide
-desligar el proyecto del fork.
+El proyecto nació como fork del runtime headless de Draw.io
+(`rlespinasse/docker-drawio-desktop-headless`). Esa capa de rendering y todos sus
+restos (`src/`, `Dockerfile` raíz, pruebas Bats, workflows de drawio-desktop,
+`THIRD_PARTY_LICENSES`, metadata `.github/`) se **eliminaron**; sólo se conservan
+`LICENSE` y `NOTICE`. El repositorio ya no tiene automatización de GitHub.
 
 ## Validation
 
 Pruebas Python: `tests/test_linting.py`, `tests/test_api.py`, `tests/test_c4norm.py`
-(motor ELK + fallback, parse, clasificación, hoja/cajetín). CI en
-`.github/workflows/ci.yml` instala Node + `elkjs` para ejercitar ELK real.
+(motor ELK + fallback, parse, clasificación, hoja/cajetín). Para ejercitar ELK real
+hay que instalar Node + `elkjs` (`npm install --prefix c4norm/layout`); sin ellos,
+el normalizador usa el layout en Python puro. No hay CI en GitHub: se valida en local.
