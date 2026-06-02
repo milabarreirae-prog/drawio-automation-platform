@@ -116,6 +116,9 @@ class Settings(BaseSettings):
     # =========================================================================
     api_key: str = ""
     cors_origins: str = "*"
+    rate_limit_enabled: bool = True
+    rate_limit_generate_per_minute: int = 60
+    rate_limit_status_per_minute: int = 240
 
     # =========================================================================
     # Resource Limits

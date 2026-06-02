@@ -1,0 +1,157 @@
+<mxGraphModel dx="3600" dy="2600" grid="1" gridSize="10">
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+
+    <!-- CONTENEDORES -->
+    <mxCell id="10" value="DCC (Data Center Principal) - Homologación física pendiente" style="swimlane;html=1;startSize=40;" vertex="1" parent="1">
+      <mxGeometry x="40" y="220" width="1300" height="1700" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="11" value="CDLV (Data Center Secundario) - Homologación física pendiente" style="swimlane;html=1;startSize=40;" vertex="1" parent="1">
+      <mxGeometry x="1400" y="220" width="1300" height="1700" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="12" value="Oracle Cloud Infrastructure (OCI) / Externos" style="swimlane;html=1;startSize=40;" vertex="1" parent="1">
+      <mxGeometry x="40" y="1950" width="2660" height="500" as="geometry"/>
+    </mxCell>
+
+    <!-- RED GLOBAL -->
+    <mxCell id="200" value="&lt;b&gt;DNS / GSLB&lt;/b&gt;&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Baja&lt;br&gt;&lt;i&gt;Redirección DCC ↔ CDLV no validada&lt;/i&gt;" style="ellipse;html=1;" vertex="1" parent="1">
+      <mxGeometry x="1150" y="60" width="260" height="120" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="201" value="&lt;b&gt;WAN / MPLS / SD-WAN&lt;/b&gt;&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Media&lt;br&gt;&lt;i&gt;Rutas no validadas&lt;/i&gt;" style="ellipse;html=1;" vertex="1" parent="1">
+      <mxGeometry x="850" y="60" width="260" height="120" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="212" value="&lt;b&gt;NAT / Routing&lt;/b&gt;&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Baja&lt;br&gt;&lt;i&gt;Matriz de rutas incompleta&lt;/i&gt;" style="rectangle;html=1;" vertex="1" parent="1">
+      <mxGeometry x="1400" y="120" width="260" height="120" as="geometry"/>
+    </mxCell>
+
+    <!-- CANALES -->
+    <mxCell id="20" value="&lt;b&gt;Ejecutivos / Backoffice&lt;/b&gt;&lt;br&gt;Rol: Canal Legacy&lt;br&gt;Confianza: Alta" style="shape=cloud;html=1;" vertex="1" parent="1">
+      <mxGeometry x="600" y="30" width="260" height="120" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="21" value="&lt;b&gt;Omni 2.0&lt;/b&gt;&lt;br&gt;Rol: Plataforma destino&lt;br&gt;Confianza: Alta" style="shape=cloud;html=1;" vertex="1" parent="1">
+      <mxGeometry x="2100" y="30" width="260" height="120" as="geometry"/>
+    </mxCell>
+
+    <!-- FIREWALL -->
+    <mxCell id="210" value="&lt;b&gt;Firewall DCC&lt;/b&gt;&lt;br&gt;Estado CMDB: Parcial&lt;br&gt;Confianza: Media&lt;br&gt;&lt;i&gt;Reglas incompletas&lt;/i&gt;" style="rectangle;html=1;" vertex="1" parent="10">
+      <mxGeometry x="100" y="80" width="260" height="120" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="211" value="&lt;b&gt;Firewall CDLV&lt;/b&gt;&lt;br&gt;Estado CMDB: Parcial&lt;br&gt;Confianza: Media-Baja&lt;br&gt;&lt;i&gt;Reglas DRP incompletas&lt;/i&gt;" style="rectangle;html=1;" vertex="1" parent="11">
+      <mxGeometry x="100" y="80" width="260" height="120" as="geometry"/>
+    </mxCell>
+
+    <!-- F5 -->
+    <mxCell id="30" value="&lt;b&gt;F5 DCC&lt;/b&gt;&lt;br&gt;IP: N/D&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Baja" style="ellipse;html=1;" vertex="1" parent="10">
+      <mxGeometry x="400" y="80" width="260" height="140" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="31" value="&lt;b&gt;F5 CDLV&lt;/b&gt;&lt;br&gt;IP: N/D&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Baja" style="ellipse;html=1;" vertex="1" parent="11">
+      <mxGeometry x="400" y="80" width="260" height="140" as="geometry"/>
+    </mxCell>
+
+    <!-- APIGEE -->
+    <mxCell id="32" value="&lt;b&gt;APIGEE DCC&lt;/b&gt;&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Media" style="rounded=1;html=1;" vertex="1" parent="10">
+      <mxGeometry x="800" y="80" width="260" height="140" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="33" value="&lt;b&gt;APIGEE CDLV&lt;/b&gt;&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Media" style="rounded=1;html=1;" vertex="1" parent="11">
+      <mxGeometry x="800" y="80" width="260" height="140" as="geometry"/>
+    </mxCell>
+
+    <!-- PCOM -->
+    <mxCell id="40" value="&lt;b&gt;bassani1 / widor1&lt;/b&gt;&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Media&lt;br&gt;&lt;i&gt;Host no validado&lt;/i&gt;" style="shape=mxgraph.networks.server;html=1;" vertex="1" parent="10">
+      <mxGeometry x="200" y="300" width="280" height="160" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="41" value="&lt;b&gt;bassani2 / widor2&lt;/b&gt;&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Media&lt;br&gt;&lt;i&gt;Host no validado&lt;/i&gt;" style="shape=mxgraph.networks.server;html=1;" vertex="1" parent="11">
+      <mxGeometry x="200" y="300" width="280" height="160" as="geometry"/>
+    </mxCell>
+
+    <!-- OSB -->
+    <mxCell id="50" value="&lt;b&gt;busProd3&lt;/b&gt;&lt;br&gt;OSB 11g/12c&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Media" style="shape=mxgraph.networks.server;html=1;" vertex="1" parent="10">
+      <mxGeometry x="200" y="520" width="280" height="160" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="51" value="&lt;b&gt;busProd4&lt;/b&gt;&lt;br&gt;OSB 11g/12c&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Media" style="shape=mxgraph.networks.server;html=1;" vertex="1" parent="11">
+      <mxGeometry x="200" y="520" width="280" height="160" as="geometry"/>
+    </mxCell>
+
+    <!-- TUXEDO -->
+    <mxCell id="60" value="&lt;b&gt;tuxedo1p&lt;/b&gt;&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Baja" style="shape=mxgraph.networks.server;html=1;" vertex="1" parent="10">
+      <mxGeometry x="450" y="760" width="280" height="160" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="61" value="&lt;b&gt;tuxedo2p&lt;/b&gt;&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Baja" style="shape=mxgraph.networks.server;html=1;" vertex="1" parent="11">
+      <mxGeometry x="450" y="760" width="280" height="160" as="geometry"/>
+    </mxCell>
+
+    <!-- FABAN -->
+    <mxCell id="70" value="&lt;b&gt;amadeus1&lt;/b&gt;&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Media" style="shape=cylinder3;html=1;" vertex="1" parent="10">
+      <mxGeometry x="200" y="1000" width="280" height="160" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="71" value="&lt;b&gt;amadeus2&lt;/b&gt;&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Media" style="shape=cylinder3;html=1;" vertex="1" parent="11">
+      <mxGeometry x="200" y="1000" width="280" height="160" as="geometry"/>
+    </mxCell>
+
+    <!-- BACKENDS -->
+    <mxCell id="80" value="&lt;b&gt;FCC&lt;/b&gt;&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Media" style="rectangle;html=1;" vertex="1" parent="10">
+      <mxGeometry x="600" y="1000" width="280" height="160" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="81" value="&lt;b&gt;FCC DRP&lt;/b&gt;&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Media" style="rectangle;html=1;" vertex="1" parent="11">
+      <mxGeometry x="600" y="1000" width="280" height="160" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="82" value="&lt;b&gt;SAT&lt;/b&gt;&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Media" style="rectangle;html=1;" vertex="1" parent="10">
+      <mxGeometry x="950" y="1000" width="280" height="160" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="83" value="&lt;b&gt;SAT DRP&lt;/b&gt;&lt;br&gt;Estado CMDB: Pendiente&lt;br&gt;Confianza: Media" style="rectangle;html=1;" vertex="1" parent="11">
+      <mxGeometry x="950" y="1000" width="280" height="160" as="geometry"/>
+    </mxCell>
+
+    <!-- OCI -->
+    <mxCell id="90" value="&lt;b&gt;BUP_PROD&lt;/b&gt;&lt;br&gt;OCI Oracle 19c&lt;br&gt;Confianza: Alta" style="shape=cylinder3;html=1;" vertex="1" parent="12">
+      <mxGeometry x="1100" y="100" width="280" height="160" as="geometry"/>
+    </mxCell>
+
+    <!-- EXTERNOS -->
+    <mxCell id="91" value="Sinacofi" style="ellipse;" vertex="1" parent="12">
+      <mxGeometry x="200" y="100" width="200" height="100" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="92" value="Equifax" style="ellipse;" vertex="1" parent="12">
+      <mxGeometry x="450" y="100" width="200" height="100" as="geometry"/>
+    </mxCell>
+
+    <!-- FLOWS PRINCIPAL -->
+    <mxCell id="e1" edge="1" source="20" target="201" parent="1" style="edgeStyle=orthogonalEdgeStyle;"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="e2" edge="1" source="201" target="200" parent="1" style="edgeStyle=orthogonalEdgeStyle;"/>
+    <mxCell id="e3" edge="1" source="200" target="30" parent="1" style="edgeStyle=orthogonalEdgeStyle;"/>
+    <mxCell id="e4" edge="1" source="30" target="40" parent="1" style="edgeStyle=orthogonalEdgeStyle;"/>
+    <mxCell id="e5" edge="1" source="40" target="50" parent="1" style="edgeStyle=orthogonalEdgeStyle;"/>
+    <mxCell id="e6" edge="1" source="50" target="60" parent="1" style="edgeStyle=orthogonalEdgeStyle;"/>
+    <mxCell id="e7" value="XA / Jolt" edge="1" source="60" target="70" parent="1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#ff0000;"/>
+    <mxCell id="e8" value="XA / Jolt" edge="1" source="60" target="80" parent="1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#ff0000;"/>
+
+    <!-- TRANSICION -->
+    <mxCell id="e30" edge="1" source="21" target="32" parent="1" style="edgeStyle=orthogonalEdgeStyle;"/>
+    <mxCell id="e31" edge="1" source="32" target="50" parent="1" style="edgeStyle=orthogonalEdgeStyle;"/>
+
+    <!-- DRP -->
+    <mxCell id="e40" edge="1" source="31" target="41" parent="1" style="edgeStyle=orthogonalEdgeStyle;dashed=1;"/>
+    <mxCell id="e41" edge="1" source="41" target="51" parent="1" style="edgeStyle=orthogonalEdgeStyle;dashed=1;"/>
+    <mxCell id="e42" edge="1" source="51" target="61" parent="1" style="edgeStyle=orthogonalEdgeStyle;dashed=1;"/>
+    <mxCell id="e43" value="XA / Jolt" edge="1" source="61" target="71" parent="1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#ff0000;dashed=1;"/>
+    <mxCell id="e44" value="XA / Jolt" edge="1" source="61" target="81" parent="1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#ff0000;dashed=1;"/>
+
+  </root>
+</mxGraphModel>
