@@ -23,10 +23,11 @@ Normalizar XML crudo de Draw.io (de IA) a **C4 conforme a estándar** para Confl
 - **CLI** (`python -m c4norm`) y **API** FastAPI síncrona (`POST /api/v1/diagram/normalize`,
   `/health`, `/metrics`, con auth opcional y rate limiting).
 - **Contenedor** (Python + Node/elkjs) que sirve la API.
+- **Guía de usuario** (`docs/USER_GUIDE.md`): instalación, CLI, API, Docker, configuración y troubleshooting.
 
 ## ⏳ Pendiente
 
-- **Documentación de usuario** (guía + ejemplos de la API).
+Ninguno — el roadmap base del prototipo está completo. ✅
 
 ## 🔭 Futuro (fuera del prototipo)
 
