@@ -11,7 +11,9 @@ Normalizar XML crudo de Draw.io (de IA) a **C4 conforme a estándar** para Confl
 
 - Motor `c4norm`: parse + saneo (mojibake, formatos), modelo lógico, reparación de
   aristas huérfanas y contención solo-visual.
-- Clasificador C4 **heurístico** (determinista) tras la interfaz `C4Classifier`.
+- Clasificadores C4 tras la interfaz `C4Classifier`: **heurístico** (determinista) y
+  **LLM** (OpenAI-compatible, provider-agnóstico; modos `heuristic` / `llm` / `auto`).
+  El LLM solo re-tipa nodos existentes (no inventa); tipo inválido → conserva el heurístico.
 - Layout intercambiable: **ELK real** (elkjs/Node, ruteo ortogonal) + **fallback** Python.
 - Hoja de ingeniería: marco + **cajetín ISO 7200** + escala + ajuste al contenido.
 - **CLI** (`python -m c4norm`) y **API** FastAPI síncrona (`POST /api/v1/diagram/normalize`,
@@ -20,8 +22,6 @@ Normalizar XML crudo de Draw.io (de IA) a **C4 conforme a estándar** para Confl
 
 ## ⏳ Pendiente
 
-- **Clasificador LLM productivo** (`LLMClassifier`): hoy es un stub tras la interfaz
-  (API tipo OpenAI, provider-agnóstico) para corregir diagramas fuera de estándar.
 - **Anclado completo** de nodos de red flotantes a una zona de conectividad (hoy parcial;
   ver C4_NORMALIZER_DESIGN.md §10).
 - **Multi-hoja**: cuando el contenido no cabe ni al mínimo se marca `overflow`; falta
