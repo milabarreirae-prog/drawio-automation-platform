@@ -2,16 +2,15 @@
 API REST del normalizador C4 (drawio-automation-platform).
 
 Endpoints:
-  GET  /health                      — Estado del servicio + motor de layout
-  GET  /metrics                     — Métricas Prometheus
-  POST /api/v1/diagram/normalize    — Normaliza Draw.io crudo → C4 (síncrono)
-
-La normalización es de ms-segundos y se ejecuta de forma síncrona. No hay cola
-ni workers: eso pertenecía a la antigua plataforma de rendering, ya retirada.
+  GET  /health                        — Estado del servicio + motor de layout
+  GET  /metrics                       — Métricas Prometheus
+  POST /api/v1/diagram/normalize      — XML crudo → C4 (síncrono)
+  POST /api/v1/diagram/from-image     — Imagen + prompt → C4 (visión LLM)
 """
 
 from __future__ import annotations
 
+import base64
 import datetime
 import logging
 import time
@@ -27,6 +26,7 @@ from api.config import Settings, get_settings
 from api.linting import XMLLinter
 from api.schemas import (
     ErrorResponse,
+    FromImageRequest,
     HealthResponse,
     NormalizeReportModel,
     NormalizeRequest,
@@ -36,6 +36,7 @@ from api.schemas import (
 from c4norm.layout.elk import ElkLayout
 from c4norm.normalize import normalize
 from c4norm.sheet import TitleBlock
+from c4norm.vision import VisionExtractor, extract_level_from_prompt
 
 # =============================================================================
 # Estado de la aplicación
@@ -311,6 +312,76 @@ def normalize_diagram(payload: NormalizeRequest, request: Request) -> NormalizeR
     )
 
 
+@app.post("/api/v1/diagram/from-image", response_model=NormalizeResponse)
+def diagram_from_image(payload: FromImageRequest, request: Request) -> NormalizeResponse:
+    """
+    Genera un diagrama C4 desde una imagen + prompt en lenguaje natural.
+
+    Pipeline:
+    1. Autenticación + rate limit.
+    2. Detecta el nivel C4 del prompt (si no se indica explícitamente).
+    3. ``VisionExtractor`` (LLM con visión) → XML Draw.io crudo.
+    4. ``c4norm.normalize()`` → XML C4 + reporte.
+    5. (opcional) compliance sobre el XML de salida.
+
+    Requiere ``C4NORM_LLM_API_KEY`` y un modelo de visión (``C4NORM_VISION_MODEL``).
+    Proveedor por defecto: Alibaba Cloud MaaS ``qwen-image-2.0-pro``.
+    """
+    _enforce_api_key(request)
+    _enforce_rate_limit(request, limit=settings.rate_limit_normalize_per_minute, bucket="normalize")
+
+    if not settings.c4norm_llm_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Visión no disponible: configura C4NORM_LLM_API_KEY y C4NORM_VISION_MODEL.",
+        )
+
+    # Nivel C4: campo explícito > prompt > 2 (por defecto)
+    level = payload.c4_level or extract_level_from_prompt(payload.prompt)
+
+    # Decodificar imagen
+    try:
+        image_bytes = base64.b64decode(payload.image_base64)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"image_base64 inválido: {exc}",
+        ) from exc
+
+    if len(image_bytes) > settings.max_xml_payload_size:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Imagen demasiado grande: {len(image_bytes)} bytes. Máximo: {settings.max_xml_payload_size}.",
+        )
+
+    # Visión: imagen → XML Draw.io crudo
+    extractor = VisionExtractor(
+        api_base=settings.c4norm_llm_api_base,
+        api_key=settings.c4norm_llm_api_key,
+        model=settings.c4norm_vision_model,
+    )
+    raw_xml = extractor.extract(image_bytes, prompt=payload.prompt, c4_level=level)
+
+    # Normalizar: XML crudo → C4
+    title_block = _build_title_block(payload.title_block)
+    xml_c4, report = normalize(
+        raw_xml,
+        c4_level=level,
+        classifier=payload.classifier,
+        title_block=title_block,
+    )
+
+    compliance = None
+    if payload.run_compliance_check:
+        compliance = XMLLinter(settings).full_validation(xml_c4)
+
+    return NormalizeResponse(
+        xml_c4=xml_c4,
+        report=NormalizeReportModel(**vars(report)),
+        compliance=compliance,
+    )
+
+
 @app.get("/")
 async def root() -> dict[str, object]:
     """Información del servicio."""
@@ -319,5 +390,10 @@ async def root() -> dict[str, object]:
         "version": "0.1.0",
         "description": "Normalizador Draw.io -> C4",
         "docs": "/docs",
-        "endpoints": ["POST /api/v1/diagram/normalize", "GET /health", "GET /metrics"],
+        "endpoints": [
+            "POST /api/v1/diagram/normalize",
+            "POST /api/v1/diagram/from-image",
+            "GET /health",
+            "GET /metrics",
+        ],
     }

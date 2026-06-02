@@ -37,7 +37,29 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "info"
 
+    # =========================================================================
+    # LLM / Visión
+    # =========================================================================
+    c4norm_llm_api_base: str = Field(
+        default="https://api.openai.com/v1",
+        validation_alias=AliasChoices("c4norm_llm_api_base", "C4NORM_LLM_API_BASE"),
+    )
+    c4norm_llm_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("c4norm_llm_api_key", "C4NORM_LLM_API_KEY"),
+    )
+    c4norm_llm_model: str = Field(
+        default="gpt-4o-mini",
+        validation_alias=AliasChoices("c4norm_llm_model", "C4NORM_LLM_MODEL"),
+    )
+    c4norm_vision_model: str = Field(
+        default="qwen3.6-plus",
+        validation_alias=AliasChoices("c4norm_vision_model", "C4NORM_VISION_MODEL"),
+    )
+
+    # =========================================================================
     # Compliance opcional (usado por api/linting.py)
+    # =========================================================================
     allowed_stencils: str = Field(
         default="aws4,gcp2,azure,archimate3,c4,cisco,oci",
         validation_alias=AliasChoices("allowed_stencils", "ALLOWED_STENCILS"),
