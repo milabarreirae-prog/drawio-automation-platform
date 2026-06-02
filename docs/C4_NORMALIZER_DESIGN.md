@@ -190,7 +190,8 @@ patrón actual.
   gratis → opcional y pluggable.
 - **Escala (cientos de nodos):** la respuesta es **descomposición por
   nivel/boundary** (vistas C4), no un lienzo gigante. Ningún motor de layout
-  hace "profesional" un grafo de 500 nodos en un solo canvas.
+  hace "profesional" un grafo de 500 nodos en un solo canvas. *(Implementado:
+  multi-hoja por boundary al desbordar — `c4norm/emit.py`.)*
 - **Interop LeanIX (futuro):** fuera del prototipo. Cuando llegue, será un ETL
   GraphQL → modelo lógico → este pipeline; los `c4Type` se derivarían de las Fact
   Sheets. Los stencils LeanIX son propietarios.
@@ -225,7 +226,7 @@ estéticos sino de disciplina (ISO/ANSI / vieja escuela):
   fecha, revisión, hoja N de M, formato (A3/A4) y **escala**.
 - **Escala real** (implementada): el dibujo se ajusta a la hoja y la escala
   resultante se reporta en el cajetín (`1:1`, `1:1.9`…). Si no cabe ni al mínimo,
-  se marca *overflow* (futuro: multi-hoja).
+  se marca *overflow* y se descompone en multi-hoja por boundary.
 - **Layout que refleja la jerarquía** (implementado: árbol vertical TB; futuro:
   ELK con minimización de cruces y ruteo ortogonal). Nunca "todo en una fila".
 - **Nada flotando** (implementado): los nodos de infra sueltos

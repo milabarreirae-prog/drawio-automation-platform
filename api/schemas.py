@@ -102,6 +102,8 @@ class NormalizeReportModel(BaseModel):
     sheet: str = "A3"
     orientation: str = "landscape"
     engine: str = ""
+    sheets: int = 1
+    cross_sheet_edges: int = 0
 
 
 class NormalizeResponse(BaseModel):

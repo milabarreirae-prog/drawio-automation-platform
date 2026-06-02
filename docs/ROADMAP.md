@@ -18,14 +18,14 @@ Normalizar XML crudo de Draw.io (de IA) a **C4 conforme a estándar** para Confl
   El LLM solo re-tipa nodos existentes (no inventa); tipo inválido → conserva el heurístico.
 - Layout intercambiable: **ELK real** (elkjs/Node, ruteo ortogonal) + **fallback** Python.
 - Hoja de ingeniería: marco + **cajetín ISO 7200** + escala + ajuste al contenido.
+- **Multi-hoja**: si desborda y hay ≥2 boundaries, descompone en una hoja por boundary
+  (vista de deployment) + "Contexto"; las aristas que cruzan hojas se cuentan y reportan.
 - **CLI** (`python -m c4norm`) y **API** FastAPI síncrona (`POST /api/v1/diagram/normalize`,
   `/health`, `/metrics`, con auth opcional y rate limiting).
 - **Contenedor** (Python + Node/elkjs) que sirve la API.
 
 ## ⏳ Pendiente
 
-- **Multi-hoja**: cuando el contenido no cabe ni al mínimo se marca `overflow`; falta
-  partir en varias hojas / vistas por boundary.
 - **Documentación de usuario** (guía + ejemplos de la API).
 
 ## 🔭 Futuro (fuera del prototipo)
