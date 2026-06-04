@@ -41,6 +41,8 @@ python -m c4norm <entrada.drawio.xml> [opciones]
 | `--arch TEXTO` | `—` | Cajetín: revisó / arquitecto |
 | `--rev TEXTO` | `A` | Cajetín: revisión |
 | `--date ISO` | hoy | Cajetín: fecha |
+| `--org TEXTO` | (vacío) | Cajetín: organización (ISO 7200) |
+| `--doc-no TEXTO` | (vacío) | Cajetín: número de plano (ISO 7200) |
 
 ```bash
 python -m c4norm crudo.drawio.xml --level 2 \
@@ -61,7 +63,7 @@ uvicorn api.main:app --reload      # http://localhost:8000  ·  docs en /docs
 | `xml_content` | string | (requerido) | XML Draw.io crudo |
 | `c4_level` | 1·2·3 | 2 | Nivel C4 |
 | `classifier` | heuristic·llm·auto | heuristic | Clasificador |
-| `title_block` | objeto | null | `project, title, doc_type, drawn_by, approved_by, date, revision` |
+| `title_block` | objeto | null | `project, title, doc_type, drawn_by, approved_by, date, revision, organization, doc_number` |
 | `run_compliance_check` | bool | false | Corre el linter de compliance sobre la salida |
 
 Respuesta:

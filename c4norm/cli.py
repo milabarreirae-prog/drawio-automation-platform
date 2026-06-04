@@ -31,6 +31,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--arch", dest="approved_by", default="—", help="Revisó / Arquitecto")
     parser.add_argument("--date", default=None, help="Por defecto: hoy (ISO)")
     parser.add_argument("--rev", default="A")
+    parser.add_argument("--org", dest="organization", default="", help="Organización (ISO 7200)")
+    parser.add_argument("--doc-no", dest="doc_number", default="", help="Número de plano (ISO 7200)")
     args = parser.parse_args(argv)
 
     xml_in = args.input.read_text(encoding="utf-8")
@@ -43,6 +45,8 @@ def main(argv: list[str] | None = None) -> int:
         approved_by=args.approved_by,
         date=date,
         revision=args.rev,
+        organization=args.organization,
+        doc_number=args.doc_number,
     )
     if not tb.title:
         tb = None  # deja que normalize tome el nombre del diagrama

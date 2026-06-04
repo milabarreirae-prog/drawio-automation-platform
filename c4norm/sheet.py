@@ -38,6 +38,8 @@ class TitleBlock:
     approved_by: str = "—"  # revisó / arquitecto
     date: str = ""
     revision: str = "A"
+    organization: str = ""   # propietario legal (ISO 7200)
+    doc_number: str = ""     # número de plano / identificación del documento (ISO 7200)
     sheet_n: int = 1
     sheet_m: int = 1
     fmt: str = "A3"
@@ -112,8 +114,12 @@ def render_frame_and_title_block(page_w: int, page_h: int, tb: TitleBlock) -> li
     cells: list[str] = [_cell("c4norm-frame", "", border, fx, fy, fw, fh)]
 
     type_suffix = f"  [{tb.doc_type}]" if tb.doc_type else ""
-    cells.append(_cell("c4norm-tb-proj", f"<b>PROYECTO:</b> {tb.project}", box, tbx, tby, _TB_W, 36))
-    cells.append(_cell("c4norm-tb-title", f"<b>TÍTULO:</b> {tb.title}{type_suffix}", box_title, tbx, tby + 36, _TB_W, 40))
+    org_suffix = f" | <b>ORG:</b> {tb.organization}" if tb.organization else ""
+    docno_suffix = f" | <b>N° plano:</b> {tb.doc_number}" if tb.doc_number else ""
+    cells.append(_cell("c4norm-tb-proj", f"<b>PROYECTO:</b> {tb.project}{org_suffix}", box, tbx, tby, _TB_W, 36))
+    cells.append(
+        _cell("c4norm-tb-title", f"<b>TÍTULO:</b> {tb.title}{type_suffix}{docno_suffix}", box_title, tbx, tby + 36, _TB_W, 40)
+    )
 
     gx, gy, gw, gh = tbx, tby + 76, _TB_W, _TB_H - 76
     cw, rh = gw / 2, gh / 3

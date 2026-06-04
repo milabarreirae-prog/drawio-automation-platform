@@ -41,6 +41,8 @@ class NormalizeReport:
     engine: str = ""
     sheets: int = 1
     cross_sheet_edges: int = 0
+    input_page_count: int = 1
+    warnings: list[str] = field(default_factory=list)
 
     def to_api_dict(self) -> dict:
         """Serializa a dict para NormalizeReportModel (única fuente de verdad del mapping)."""
@@ -64,6 +66,13 @@ def normalize(
     diagrams = parse_drawio(xml_content)
     if not diagrams:
         raise ValueError("No se encontró ningún diagrama en el XML")
+
+    warnings: list[str] = []
+    if len(diagrams) > 1:
+        warnings.append(
+            f"El XML tiene {len(diagrams)} páginas; solo se normaliza la primera "
+            f"('{diagrams[0].name}'). Las demás se ignoran."
+        )
 
     diagram = diagrams[0]
     clf = get_classifier(classifier)
@@ -98,5 +107,7 @@ def normalize(
         engine=result.engine,
         sheets=result.sheets,
         cross_sheet_edges=result.cross_sheet_edges,
+        input_page_count=len(diagrams),
+        warnings=warnings,
     )
     return result.xml, report
