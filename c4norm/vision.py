@@ -22,6 +22,14 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+
+def _env_int(name: str, default: int) -> int:
+    """Lee un entero de entorno con fallback silencioso al default."""
+    try:
+        return int(os.environ.get(name, default))
+    except (TypeError, ValueError):
+        return default
+
 # =============================================================================
 # Detección de nivel C4 desde prompt en lenguaje natural
 # =============================================================================
@@ -152,13 +160,13 @@ class VisionExtractor:
         api_key: str | None = None,
         model: str | None = None,
         chat: Callable[[bytes, str], str] | None = None,
-        timeout: float = 120,
+        timeout: float | None = None,
         retries: int = 2,
     ) -> None:
         self.api_base = api_base or os.environ.get("C4NORM_LLM_API_BASE", "https://api.openai.com/v1")
         self.api_key = api_key if api_key is not None else os.environ.get("C4NORM_LLM_API_KEY", "")
         self.model = model or os.environ.get("C4NORM_VISION_MODEL", "qwen3.6-plus")
-        self.timeout = timeout
+        self.timeout = timeout if timeout is not None else _env_int("C4NORM_VISION_TIMEOUT", 120)
         self.retries = retries
         self._chat = chat
 

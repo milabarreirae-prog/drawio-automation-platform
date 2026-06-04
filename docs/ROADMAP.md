@@ -33,6 +33,10 @@ Ninguno — el roadmap base del prototipo está completo. ✅
 
 - Interop **LeanIX** (ETL GraphQL → modelo lógico → este pipeline).
 - Badges / leyenda de estado (`Confianza`, `Estado CMDB`) en el diagrama.
+- **Rendimiento avanzado** (requiere load-testing para validar):
+  - API totalmente **async** (`httpx.AsyncClient`) para que las llamadas LLM no
+    consuman un hilo del threadpool durante la espera de red.
+  - **Proceso Node persistente** para ELK (evita el arranque de ~100-400 ms por diagrama).
 
 ## Principio innegociable
 

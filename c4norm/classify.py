@@ -17,12 +17,21 @@ import json
 import os
 import re
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING
 
 from c4norm.model import C4Type, Diagram, Edge, Node
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+
+def _env_int(name: str, default: int) -> int:
+    """Lee un entero de entorno con fallback silencioso al default."""
+    try:
+        return int(os.environ.get(name, default))
+    except (TypeError, ValueError):
+        return default
 
 # Pistas léxicas que sugieren "externo" (sistema/BD en gris).
 _EXTERNAL_HINTS = ("externo", "external", "tercero", "proveedor externo", "sinacofi", "equifax", "servipag")
@@ -185,9 +194,12 @@ class LLMClassifier(C4Classifier):
     conserva el heurístico (principio "el motor nunca inventa").
 
     Config por entorno (endpoint OpenAI-compatible ``/chat/completions``):
-      * ``C4NORM_LLM_API_BASE``  (def. ``https://api.openai.com/v1``)
-      * ``C4NORM_LLM_API_KEY``   (requerido para llamadas reales)
-      * ``C4NORM_LLM_MODEL``     (def. ``gpt-4o-mini``)
+      * ``C4NORM_LLM_API_BASE``      (def. ``https://api.openai.com/v1``)
+      * ``C4NORM_LLM_API_KEY``       (requerido para llamadas reales)
+      * ``C4NORM_LLM_MODEL``         (def. ``gpt-4o-mini``)
+      * ``C4NORM_LLM_TIMEOUT``       (def. 120 s)
+      * ``C4NORM_LLM_BATCH_SIZE``    (def. 20 nodos por lote)
+      * ``C4NORM_LLM_MAX_PARALLEL``  (def. 4 lotes concurrentes)
 
     Para tests o proveedores alternativos se puede inyectar ``chat`` (str -> str).
     """
@@ -201,16 +213,18 @@ class LLMClassifier(C4Classifier):
         model: str | None = None,
         only_low_confidence: bool = False,
         retries: int = 2,
-        batch_size: int = 20,
-        timeout: float = 120,
+        batch_size: int | None = None,
+        timeout: float | None = None,
+        max_parallel: int | None = None,
     ) -> None:
         self.api_base = api_base or os.environ.get("C4NORM_LLM_API_BASE", "https://api.openai.com/v1")
         self.api_key = api_key if api_key is not None else os.environ.get("C4NORM_LLM_API_KEY", "")
         self.model = model or os.environ.get("C4NORM_LLM_MODEL", "gpt-4o-mini")
         self.only_low_confidence = only_low_confidence
         self.retries = retries
-        self.batch_size = batch_size
-        self.timeout = timeout
+        self.batch_size = batch_size if batch_size is not None else _env_int("C4NORM_LLM_BATCH_SIZE", 20)
+        self.timeout = timeout if timeout is not None else _env_int("C4NORM_LLM_TIMEOUT", 120)
+        self.max_parallel = max_parallel if max_parallel is not None else _env_int("C4NORM_LLM_MAX_PARALLEL", 4)
         self._chat = chat
         self._heuristic = HeuristicClassifier()
 
@@ -283,13 +297,21 @@ class LLMClassifier(C4Classifier):
         return str(response.json()["choices"][0]["message"]["content"])
 
     def _ask_batched(self, nodes: list[Node], edges: list[Edge], c4_level: int) -> dict[str, object]:
-        """Procesa los nodos en lotes (máx. ``batch_size``) y combina los resultados."""
+        """Procesa los nodos en lotes (máx. ``batch_size``) y combina los resultados.
+
+        Los lotes son independientes (chunks disjuntos por id), así que se ejecutan
+        en paralelo hasta ``max_parallel`` a la vez. Para 60 nodos con batch_size=20
+        eso son 3 llamadas concurrentes en vez de 3 secuenciales.
+        """
         if len(nodes) <= self.batch_size:
             return self._ask(nodes, edges, c4_level)
+
+        chunks = [nodes[i : i + self.batch_size] for i in range(0, len(nodes), self.batch_size)]
         combined: dict[str, object] = {}
-        for i in range(0, len(nodes), self.batch_size):
-            chunk = nodes[i : i + self.batch_size]
-            combined.update(self._ask(chunk, edges, c4_level))
+        workers = max(1, min(len(chunks), self.max_parallel))
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            for result in pool.map(lambda c: self._ask(c, edges, c4_level), chunks):
+                combined.update(result)
         return combined
 
     def _ask(self, nodes: list[Node], edges: list[Edge], c4_level: int) -> dict[str, object]:
