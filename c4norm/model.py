@@ -38,13 +38,17 @@ class C4Style:
 
 # Paleta C4 canónica (de la plantilla oficial draw.io).
 _PERSON = "#08427b"
+_PERSON_EXT = "#686868"       # Person externa (gris, distinción visual requerida por C4)
+_PERSON_EXT_STROKE = "#5C5C5C"
 _SYSTEM_INT = "#1168BD"
+_SYSTEM_INT_STROKE = "#23497D"  # stroke distinto al fill (era strokeColor==fillColor)
 _SYSTEM_EXT = "#999999"
 _SYSTEM_EXT_STROKE = "#8A8A8A"
 _CONTAINER = "#438DD5"
 _CONTAINER_STROKE = "#3C7FC0"
 _COMPONENT = "#85BBF0"
 _COMPONENT_STROKE = "#78A8D8"
+_COMPONENT_FONT = "#000000"    # WCAG: texto oscuro sobre azul claro (#85BBF0)
 _REL = "#707070"
 
 # Plantillas de etiqueta con placeholders que draw.io expande (placeholders="1").
@@ -81,14 +85,23 @@ C4_SPEC: dict[C4Type, C4Style] = {
         width=200,
         height=130,
     ),
-    C4Type.SOFTWARE_SYSTEM: C4Style(_system_style(_SYSTEM_INT, _SYSTEM_INT), _LABEL_NAMED, 220, 120),
+    C4Type.SOFTWARE_SYSTEM: C4Style(_system_style(_SYSTEM_INT, _SYSTEM_INT_STROKE), _LABEL_NAMED, 220, 120),
     C4Type.CONTAINER: C4Style(_system_style(_CONTAINER, _CONTAINER_STROKE), _LABEL_TECH, 220, 120),
-    C4Type.COMPONENT: C4Style(_system_style(_COMPONENT, _COMPONENT_STROKE), _LABEL_TECH, 200, 110),
+    C4Type.COMPONENT: C4Style(
+        cell_style=(
+            f"rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor={_COMPONENT};"
+            f"fontColor={_COMPONENT_FONT};align=center;arcSize=10;strokeColor={_COMPONENT_STROKE};"
+            f"metaEdit=1;{_C4_POINTS}"
+        ),
+        label=_LABEL_TECH,
+        width=200,
+        height=110,
+    ),
     C4Type.DATABASE: C4Style(
         cell_style=(
-            f"shape=cylinder;whiteSpace=wrap;html=1;boundedLbl=1;rounded=1;labelBackgroundColor=none;"
-            f"fillColor={_CONTAINER};fontColor=#ffffff;align=center;strokeColor={_CONTAINER_STROKE};"
-            "metaEdit=1;arcSize=10;"
+            f"shape=mxgraph.c4.database;whiteSpace=wrap;html=1;boundedLbl=1;rounded=1;"
+            f"labelBackgroundColor=none;fillColor={_CONTAINER};fontColor=#ffffff;align=center;"
+            f"strokeColor={_CONTAINER_STROKE};metaEdit=1;"
         ),
         label=_LABEL_DB,
         width=160,
@@ -123,12 +136,18 @@ EXTERNAL_STROKE = _SYSTEM_EXT_STROKE
 
 
 def external_style(c4type: C4Type) -> str:
-    """Variante en gris para sistemas/DB marcados como externos."""
+    """Variante gris/neutra para elementos marcados como externos."""
+    if c4type is C4Type.PERSON:
+        return (
+            f"html=1;dashed=0;whiteSpace=wrap;fillColor={_PERSON_EXT};strokeColor={_PERSON_EXT_STROKE};"
+            "fontColor=#ffffff;shape=mxgraph.c4.person;align=center;metaEdit=1;"
+            "points=[[0.5,0,0],[1,0.5,0],[1,0.75,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,0.75,0],[0,0.5,0]];"
+        )
     if c4type is C4Type.DATABASE:
         return (
-            f"shape=cylinder;whiteSpace=wrap;html=1;boundedLbl=1;rounded=1;labelBackgroundColor=none;"
-            f"fillColor={EXTERNAL_FILL};fontColor=#ffffff;align=center;strokeColor={EXTERNAL_STROKE};"
-            "metaEdit=1;arcSize=10;"
+            f"shape=mxgraph.c4.database;whiteSpace=wrap;html=1;boundedLbl=1;rounded=1;"
+            f"labelBackgroundColor=none;fillColor={EXTERNAL_FILL};fontColor=#ffffff;align=center;"
+            f"strokeColor={EXTERNAL_STROKE};metaEdit=1;"
         )
     return _system_style(EXTERNAL_FILL, EXTERNAL_STROKE)
 
