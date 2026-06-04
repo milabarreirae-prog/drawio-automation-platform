@@ -61,7 +61,7 @@ uvicorn api.main:app --reload      # http://localhost:8000  ·  docs en /docs
 | Campo | Tipo | Por defecto | Descripción |
 |-------|------|-------------|-------------|
 | `xml_content` | string | (requerido) | XML Draw.io crudo |
-| `c4_level` | 1·2·3 | 2 | Nivel C4 |
+| `c4_level` | 1·2·3·4 | 2 | Nivel C4 (4 = código; el motor modela hasta Component) |
 | `classifier` | heuristic·llm·auto | heuristic | Clasificador |
 | `title_block` | objeto | null | `project, title, doc_type, drawn_by, approved_by, date, revision, organization, doc_number` |
 | `run_compliance_check` | bool | false | Corre el linter de compliance sobre la salida |
@@ -88,6 +88,25 @@ curl -s http://localhost:8000/api/v1/diagram/normalize \
   -H "Content-Type: application/json" \
   -d '{"xml_content":"<mxGraphModel>...</mxGraphModel>","c4_level":2}'
 ```
+
+### POST /api/v1/diagram/from-image  y  POST /api/v1/diagram/from-text
+
+Generan el C4 desde una **imagen** o una **descripción textual** (vía LLM). Requieren `C4NORM_LLM_API_KEY`.
+
+```bash
+# Desde texto (sólo la descripción de arquitectura)
+curl -s http://localhost:8000/api/v1/diagram/from-text \
+  -H "Content-Type: application/json" \
+  -d '{"description":"Una API FastAPI que invoca un motor c4norm...","c4_level":4}'
+
+# Desde imagen (PNG/JPEG/WebP en base64)
+curl -s http://localhost:8000/api/v1/diagram/from-image \
+  -H "Content-Type: application/json" \
+  -d '{"image_base64":"<...>","prompt":"diagrama c4n1 con esto"}'
+```
+
+Campos: `from-text` → `description` + `c4_level` + `classifier` + `title_block` + `run_compliance_check`;
+`from-image` → `image_base64` + `prompt` (detecta el nivel del prompt) + los mismos opcionales.
 
 Otros endpoints: `GET /health` (incluye `layout_engine`) y `GET /metrics` (Prometheus).
 

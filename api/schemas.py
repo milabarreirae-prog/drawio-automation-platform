@@ -78,7 +78,7 @@ class NormalizeRequest(BaseModel):
         max_length=10_485_760,  # 10 MB
         description="XML Draw.io crudo (mxfile o mxGraphModel).",
     )
-    c4_level: int = Field(default=2, ge=1, le=3, description="Nivel C4 objetivo (1, 2 o 3).")
+    c4_level: int = Field(default=2, ge=1, le=4, description="Nivel C4 objetivo (1-4; 4=código).")
     classifier: Literal["heuristic", "llm", "auto"] = Field(
         default="heuristic", description="Estrategia de clasificación a C4."
     )
@@ -141,8 +141,8 @@ class FromImageRequest(BaseModel):
     c4_level: int | None = Field(
         default=None,
         ge=1,
-        le=3,
-        description="Nivel C4 (1–3). Si es None, se extrae del prompt; si no hay pista, se usa 2.",
+        le=4,
+        description="Nivel C4 (1–4). Si es None, se extrae del prompt; si no hay pista, se usa 2.",
     )
     classifier: Literal["heuristic", "llm", "auto"] = Field(
         default="auto",
@@ -155,6 +155,30 @@ class FromImageRequest(BaseModel):
     run_compliance_check: bool = Field(
         default=False,
         description="Si true, corre el linter de compliance sobre el XML C4 de salida.",
+    )
+
+
+# =============================================================================
+# Petición desde texto
+# =============================================================================
+
+
+class FromTextRequest(BaseModel):
+    """Petición de generación de C4 desde una descripción textual de arquitectura."""
+
+    description: str = Field(
+        ...,
+        min_length=1,
+        max_length=20_000,
+        description="Descripción en lenguaje natural de la arquitectura a diagramar.",
+    )
+    c4_level: int = Field(default=2, ge=1, le=4, description="Nivel C4 objetivo (1-4; 4=código).")
+    classifier: Literal["heuristic", "llm", "auto"] = Field(
+        default="auto", description="Clasificador C4 para el paso de normalización."
+    )
+    title_block: TitleBlockInput | None = Field(default=None, description="Datos del cajetín ISO 7200.")
+    run_compliance_check: bool = Field(
+        default=False, description="Si true, corre el linter de compliance sobre el XML C4 de salida."
     )
 
 

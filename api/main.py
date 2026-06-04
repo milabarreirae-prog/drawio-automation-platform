@@ -29,6 +29,7 @@ from api.linting import XMLLinter
 from api.schemas import (
     ErrorResponse,
     FromImageRequest,
+    FromTextRequest,
     HealthResponse,
     NormalizeReportModel,
     NormalizeRequest,
@@ -38,6 +39,7 @@ from api.schemas import (
 from c4norm.layout.elk import ElkLayout
 from c4norm.normalize import normalize
 from c4norm.sheet import TitleBlock
+from c4norm.textgen import TextExtractor
 from c4norm.vision import VisionExtractor, extract_level_from_prompt
 
 # =============================================================================
@@ -394,6 +396,55 @@ def diagram_from_image(payload: FromImageRequest, request: Request) -> Normalize
     )
 
 
+@app.post("/api/v1/diagram/from-text", response_model=NormalizeResponse)
+def diagram_from_text(payload: FromTextRequest, request: Request) -> NormalizeResponse:
+    """
+    Genera un diagrama C4 desde una descripción textual de arquitectura.
+
+    Pipeline:
+    1. Autenticación + rate limit.
+    2. ``TextExtractor`` (LLM) → XML Draw.io crudo a partir del texto.
+    3. ``c4norm.normalize()`` → XML C4 + reporte.
+    4. (opcional) compliance sobre el XML de salida.
+
+    Requiere ``C4NORM_LLM_API_KEY``. Provider por defecto: Alibaba Cloud MaaS.
+    """
+    _enforce_api_key(request)
+    _enforce_rate_limit(request, limit=settings.rate_limit_normalize_per_minute, bucket="normalize")
+
+    llm_api_key = settings.c4norm_llm_api_key.get_secret_value()
+    if not llm_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Generación por texto no disponible: configura C4NORM_LLM_API_KEY.",
+        )
+
+    extractor = TextExtractor(
+        api_base=settings.c4norm_llm_api_base,
+        api_key=llm_api_key,
+        model=settings.c4norm_llm_model,
+    )
+    raw_xml = extractor.generate(payload.description, c4_level=payload.c4_level)
+
+    title_block = _build_title_block(payload.title_block)
+    xml_c4, report = normalize(
+        raw_xml,
+        c4_level=payload.c4_level,
+        classifier=payload.classifier,
+        title_block=title_block,
+    )
+
+    compliance = None
+    if payload.run_compliance_check:
+        compliance = XMLLinter(settings).full_validation(xml_c4)
+
+    return NormalizeResponse(
+        xml_c4=xml_c4,
+        report=NormalizeReportModel(**report.to_api_dict()),
+        compliance=compliance,
+    )
+
+
 @app.get("/")
 async def root() -> dict[str, object]:
     """Información del servicio."""
@@ -405,6 +456,7 @@ async def root() -> dict[str, object]:
         "endpoints": [
             "POST /api/v1/diagram/normalize",
             "POST /api/v1/diagram/from-image",
+            "POST /api/v1/diagram/from-text",
             "GET /health",
             "GET /metrics",
         ],

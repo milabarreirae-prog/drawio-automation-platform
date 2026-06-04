@@ -38,22 +38,30 @@ _LEVEL_RE: list[tuple[re.Pattern[str], int]] = [
     # "c4n1", "C4 N 2", "c4n3"  → grupo de captura
     (re.compile(r'c4\s*n\s*([123])', re.I), 0),
     # "nivel 1", "nivel1"
-    (re.compile(r'nivel\s*([123])', re.I), 0),
+    (re.compile(r'nivel\s*([1234])', re.I), 0),
     # "level 1", "level1"
-    (re.compile(r'level\s*([123])', re.I), 0),
+    (re.compile(r'level\s*([1234])', re.I), 0),
     # "n1", "N2"  (palabra completa)
-    (re.compile(r'\bn\s*([123])\b', re.I), 0),
+    (re.compile(r'\bn\s*([1234])\b', re.I), 0),
     # Palabras clave semánticas → nivel fijo
     (re.compile(r'\bcontexto\b', re.I), 1),
     (re.compile(r'\bcontenedores?\b', re.I), 2),
     (re.compile(r'\bcomponentes?\b', re.I), 3),
+    (re.compile(r'\b(c[oó]digo|code|clases)\b', re.I), 4),
 ]
 
-_LEVEL_LABELS = {1: "contexto (sistemas)", 2: "contenedores", 3: "componentes"}
+# C4 estándar: 4=Code. El motor modela hasta Component, así que N4 = vista más
+# granular disponible (componentes/módulos de código).
+_LEVEL_LABELS = {
+    1: "contexto (sistemas)",
+    2: "contenedores",
+    3: "componentes",
+    4: "código (componentes detallados — vista más granular del motor)",
+}
 
 
 def extract_level_from_prompt(text: str) -> int:
-    """Extrae el nivel C4 (1, 2 o 3) de un texto en lenguaje natural. Por defecto 2."""
+    """Extrae el nivel C4 (1-4) de un texto en lenguaje natural. Por defecto 2."""
     for pattern, fixed in _LEVEL_RE:
         m = pattern.search(text)
         if m:
