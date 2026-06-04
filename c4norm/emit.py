@@ -167,7 +167,10 @@ def _decompose(diagram: Diagram) -> list[tuple[str, Diagram]]:
 def _node_label(node: Node) -> str:
     t = node.c4_type
     if t is C4Type.DEPLOYMENT_NODE:
-        return '<div style="text-align:left">%c4Name%</div><div style="text-align:left">[%c4Type%]</div>'
+        label = '<div style="text-align:left">%c4Name%</div><div style="text-align:left">[%c4Type%]</div>'
+        if node.c4_description:
+            label += '<div style="text-align:left">%c4Description%</div>'
+        return label
     parts = ["<b>%c4Name%</b>"]
     if t is C4Type.DATABASE:
         parts.append("<div>[Container: %c4Technology%]</div>" if node.c4_technology else "<div>[Database]</div>")

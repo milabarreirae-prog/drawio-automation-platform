@@ -65,6 +65,8 @@ class TitleBlockInput(BaseModel):
     approved_by: str | None = Field(None, description="Revisó / arquitecto.")
     date: str | None = Field(None, description="Fecha ISO. Por defecto: hoy.")
     revision: str | None = Field(None, description="Revisión. Por defecto: A.")
+    organization: str | None = Field(None, description="Organización / propietario legal (ISO 7200).")
+    doc_number: str | None = Field(None, description="Número de plano / identificación del documento (ISO 7200).")
 
 
 class NormalizeRequest(BaseModel):
@@ -104,6 +106,8 @@ class NormalizeReportModel(BaseModel):
     engine: str = ""
     sheets: int = 1
     cross_sheet_edges: int = 0
+    input_page_count: int = 1
+    warnings: list[str] = Field(default_factory=list)
 
 
 class NormalizeResponse(BaseModel):

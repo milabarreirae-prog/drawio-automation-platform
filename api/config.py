@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,8 +23,8 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # Seguridad
-    api_key: str = ""
+    # Seguridad (SecretStr: no se expone en repr()/logs)
+    api_key: SecretStr = SecretStr("")
     cors_origins: str = "*"
 
     # Rate limiting (ventana fija por IP)
@@ -44,8 +44,8 @@ class Settings(BaseSettings):
         default="https://api.openai.com/v1",
         validation_alias=AliasChoices("c4norm_llm_api_base", "C4NORM_LLM_API_BASE"),
     )
-    c4norm_llm_api_key: str = Field(
-        default="",
+    c4norm_llm_api_key: SecretStr = Field(
+        default=SecretStr(""),
         validation_alias=AliasChoices("c4norm_llm_api_key", "C4NORM_LLM_API_KEY"),
     )
     c4norm_llm_model: str = Field(

@@ -74,7 +74,8 @@ def _extract_bearer_token(authorization: str | None) -> str | None:
 
 def _enforce_api_key(request: Request) -> None:
     """Exige API key solo si se configuró una."""
-    if not settings.api_key:
+    api_key = settings.api_key.get_secret_value()
+    if not api_key:
         return
     token = _extract_bearer_token(request.headers.get("Authorization"))
     if token is None:
@@ -82,7 +83,7 @@ def _enforce_api_key(request: Request) -> None:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing or invalid Authorization header. Use Bearer <api_key>",
         )
-    if not hmac.compare_digest(token.encode(), settings.api_key.encode()):
+    if not hmac.compare_digest(token.encode(), api_key.encode()):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid API key")
 
 
@@ -185,6 +186,10 @@ def _build_title_block(data: TitleBlockInput | None) -> TitleBlock | None:
         fields["approved_by"] = data.approved_by
     if data.revision is not None:
         fields["revision"] = data.revision
+    if data.organization is not None:
+        fields["organization"] = data.organization
+    if data.doc_number is not None:
+        fields["doc_number"] = data.doc_number
     fields["date"] = data.date or datetime.date.today().isoformat()
     return TitleBlock(**fields)
 
@@ -336,7 +341,8 @@ def diagram_from_image(payload: FromImageRequest, request: Request) -> Normalize
     _enforce_api_key(request)
     _enforce_rate_limit(request, limit=settings.rate_limit_normalize_per_minute, bucket="normalize")
 
-    if not settings.c4norm_llm_api_key:
+    llm_api_key = settings.c4norm_llm_api_key.get_secret_value()
+    if not llm_api_key:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Visión no disponible: configura C4NORM_LLM_API_KEY y C4NORM_VISION_MODEL.",
@@ -363,7 +369,7 @@ def diagram_from_image(payload: FromImageRequest, request: Request) -> Normalize
     # Visión: imagen → XML Draw.io crudo
     extractor = VisionExtractor(
         api_base=settings.c4norm_llm_api_base,
-        api_key=settings.c4norm_llm_api_key,
+        api_key=llm_api_key,
         model=settings.c4norm_vision_model,
     )
     raw_xml = extractor.extract(image_bytes, prompt=payload.prompt, c4_level=level)
