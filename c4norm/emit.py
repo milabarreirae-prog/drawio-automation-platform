@@ -18,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from xml.sax.saxutils import escape
 
-from c4norm.layout import LayoutEngine, engine_name, get_layout_engine
+from c4norm.layout import LayoutEngine, get_layout_engine, run_with_fallback
 from c4norm.model import (
     C4_SPEC,
     RELATIONSHIP_STYLE,
@@ -207,10 +207,7 @@ def emit_c4(
     """Emite el XML C4 completo (1 hoja, o varias si desborda y hay ≥2 boundaries)."""
     base_tb = title_block or TitleBlock(title=diagram.name)
 
-    engine = get_layout_engine()
-    motor = engine_name(engine)
-
-    engine.run(diagram)  # layout completo: decide overflow y sirve para 1 hoja
+    engine, motor = run_with_fallback(get_layout_engine(), diagram)  # fallback si ELK falla/timeout
     cw, ch = _content_bbox(diagram)
     _, _, area, _, _ = fit_page(cw, ch)
     boundaries = [n for n in diagram.nodes if not n.parent and n.c4_type is C4Type.DEPLOYMENT_NODE]
@@ -357,10 +354,15 @@ def _emit_node(node: Node, font: int) -> str:
 
 def _absolute_positions(diagram: Diagram) -> dict[str, tuple[float, float, float, float]]:
     out: dict[str, tuple[float, float, float, float]] = {}
+    in_progress: set[str] = set()  # protección contra ciclos A→parent=B, B→parent=A
 
     def resolve(node: Node) -> tuple[float, float, float, float]:
         if node.id in out:
             return out[node.id]
+        if node.id in in_progress:
+            # Ciclo detectado: devolver posición local sin acumular offset
+            return (node.x, node.y, node.width, node.height)
+        in_progress.add(node.id)
         ox, oy = 0.0, 0.0
         if node.parent:
             parent = diagram.node_by_id(node.parent)
@@ -369,6 +371,7 @@ def _absolute_positions(diagram: Diagram) -> dict[str, tuple[float, float, float
                 ox, oy = px, py
         box = (ox + node.x, oy + node.y, node.width, node.height)
         out[node.id] = box
+        in_progress.discard(node.id)
         return box
 
     for n in diagram.nodes:

@@ -20,7 +20,11 @@ from c4norm.sheet import TitleBlock
 
 @dataclass
 class NormalizeReport:
-    """Resumen de qué hizo el motor (para inspección/QA)."""
+    """Resumen de qué hizo el motor (para inspección/QA).
+
+    Usar ``to_api_dict()`` para serializar a la API: centraliza el mapping
+    y garantiza que campos nuevos lleguen a ``NormalizeReportModel`` sin editar dos sitios.
+    """
 
     diagram_name: str = ""
     c4_level: int = 2
@@ -37,6 +41,11 @@ class NormalizeReport:
     engine: str = ""
     sheets: int = 1
     cross_sheet_edges: int = 0
+
+    def to_api_dict(self) -> dict:
+        """Serializa a dict para NormalizeReportModel (única fuente de verdad del mapping)."""
+        import dataclasses
+        return dataclasses.asdict(self)
 
 
 def normalize(

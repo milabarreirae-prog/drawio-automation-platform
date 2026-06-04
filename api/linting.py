@@ -85,7 +85,7 @@ def validate_xml_wellformed(xml_content: str) -> etree._Element:
         raise ValueError("XML content is empty")
 
     try:
-        parser = etree.XMLParser(recover=False, resolve_entities=False, no_network=True)
+        parser = etree.XMLParser(recover=False, resolve_entities=False, no_network=True, load_dtd=False)
         root = etree.fromstring(xml_content.encode("utf-8"), parser=parser)
     except etree.XMLSyntaxError as e:
         raise ValueError(f"Malformed XML: {e}") from e

@@ -102,6 +102,22 @@ def _edge_points(cell: etree._Element) -> tuple[tuple[float, float] | None, tupl
     return src, tgt
 
 
+def _strip_namespaces(root: etree._Element) -> None:
+    """Elimina prefijos de namespace Clark ({uri}tag → tag) de todo el árbol.
+
+    Algunos exporters incluyen xmlns="http://..." en el mxfile; sin esto,
+    root.iter("diagram") no encontraría nada porque los tags tendrían la forma
+    {http://diagrams.net/schema/mxfile}diagram.
+
+    Sólo procesa elementos (no comments ni PI cuyo .tag es una función, no str).
+    """
+    for elem in root.iter():
+        if not isinstance(elem.tag, str):
+            continue
+        if "}" in elem.tag:
+            elem.tag = elem.tag.split("}", 1)[1]
+
+
 def _iter_graph_models(root: etree._Element) -> list[tuple[str, etree._Element]]:
     """Devuelve [(nombre_pagina, mxGraphModel)] tanto para mxfile como pelado."""
     if root.tag == "mxGraphModel":
@@ -241,10 +257,11 @@ def _nearest_node(diagram: Diagram, point: tuple[float, float], threshold: float
 
 def parse_drawio(xml_content: str) -> list[Diagram]:
     """Parsea XML Draw.io (mxfile o mxGraphModel pelado) a modelos lógicos."""
-    parser = etree.XMLParser(recover=True, resolve_entities=False, no_network=True)
+    parser = etree.XMLParser(recover=True, resolve_entities=False, no_network=True, load_dtd=False)
     root = etree.fromstring(xml_content.encode("utf-8"), parser=parser)
     if root is None:
         raise ValueError("XML vacío o no parseable")
+    _strip_namespaces(root)
 
     diagrams: list[Diagram] = []
     for name, gm in _iter_graph_models(root):

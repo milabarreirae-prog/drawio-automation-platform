@@ -313,7 +313,7 @@ def normalize_diagram(payload: NormalizeRequest, request: Request) -> NormalizeR
 
     return NormalizeResponse(
         xml_c4=xml_c4,
-        report=NormalizeReportModel(**vars(report)),
+        report=NormalizeReportModel(**report.to_api_dict()),
         compliance=compliance,
     )
 
@@ -383,7 +383,7 @@ def diagram_from_image(payload: FromImageRequest, request: Request) -> Normalize
 
     return NormalizeResponse(
         xml_c4=xml_c4,
-        report=NormalizeReportModel(**vars(report)),
+        report=NormalizeReportModel(**report.to_api_dict()),
         compliance=compliance,
     )
 
