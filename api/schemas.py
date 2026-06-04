@@ -115,6 +115,46 @@ class NormalizeResponse(BaseModel):
 
 
 # =============================================================================
+# Petición desde imagen
+# =============================================================================
+
+
+class FromImageRequest(BaseModel):
+    """Petición de normalización a C4 desde imagen + prompt en lenguaje natural."""
+
+    image_base64: str = Field(
+        ...,
+        description="Imagen PNG, JPEG o WebP codificada en base64.",
+    )
+    prompt: str = Field(
+        default="",
+        max_length=2000,
+        description=(
+            "Prompt en lenguaje natural. Se usa para detectar el nivel C4 "
+            "(p.ej. 'c4n1', 'nivel 2', 'diagrama de contexto') y como hint para el LLM de visión."
+        ),
+    )
+    c4_level: int | None = Field(
+        default=None,
+        ge=1,
+        le=3,
+        description="Nivel C4 (1–3). Si es None, se extrae del prompt; si no hay pista, se usa 2.",
+    )
+    classifier: Literal["heuristic", "llm", "auto"] = Field(
+        default="auto",
+        description="Clasificador C4 para el paso de normalización.",
+    )
+    title_block: TitleBlockInput | None = Field(
+        default=None,
+        description="Datos del cajetín ISO 7200.",
+    )
+    run_compliance_check: bool = Field(
+        default=False,
+        description="Si true, corre el linter de compliance sobre el XML C4 de salida.",
+    )
+
+
+# =============================================================================
 # Misceláneos
 # =============================================================================
 
