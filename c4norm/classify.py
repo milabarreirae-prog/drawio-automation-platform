@@ -99,7 +99,11 @@ class HeuristicClassifier(C4Classifier):
             return C4Type.SOFTWARE_SYSTEM  # externo se marca aparte por etiqueta
 
         # 3) Caja genérica: depende del nivel C4 declarado.
-        return C4Type.SOFTWARE_SYSTEM if c4_level <= 1 else C4Type.CONTAINER
+        if c4_level <= 1:
+            return C4Type.SOFTWARE_SYSTEM
+        if c4_level == 2:
+            return C4Type.CONTAINER
+        return C4Type.COMPONENT
 
     def _classify_edge(self, edge: Edge) -> None:
         text = edge.raw_label.strip()

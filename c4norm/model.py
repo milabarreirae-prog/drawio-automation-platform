@@ -110,7 +110,7 @@ C4_SPEC: dict[C4Type, C4Style] = {
 #: Estilo canónico de una arista C4 (Relationship).
 RELATIONSHIP_STYLE = (
     "edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;jettySize=auto;orthogonalLoop=1;"
-    f"strokeColor={_REL};strokeWidth=2;fontColor={_REL};jumpStyle=none;dashed=1;endArrow=block;metaEdit=1;"
+    f"strokeColor={_REL};strokeWidth=2;fontColor={_REL};jumpStyle=none;dashed=0;endArrow=block;metaEdit=1;"
 )
 RELATIONSHIP_LABEL = (
     '<div style="text-align:center"><b>%c4Description%</b></div>'

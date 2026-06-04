@@ -26,6 +26,12 @@ RUN python -m pip install --upgrade pip && python -m pip install -e .
 # Puente ELK (elkjs) en c4norm/layout.
 RUN npm install --prefix c4norm/layout --no-audit --no-fund
 
+# Usuario sin privilegios (no correr como root en producción).
+RUN groupadd -r appuser \
+ && useradd -r -g appuser -d /app appuser \
+ && chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \

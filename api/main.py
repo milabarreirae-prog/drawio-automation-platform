@@ -12,12 +12,14 @@ from __future__ import annotations
 
 import base64
 import datetime
+import hmac
 import logging
 import time
 import uuid
 from collections import defaultdict, deque
 from threading import Lock
 
+from cachetools import LRUCache
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
@@ -47,7 +49,7 @@ logger = logging.getLogger("api")
 _start_time: float = time.time()
 
 _rate_limit_lock = Lock()
-_rate_limit_events: dict[str, deque[float]] = defaultdict(deque)
+_rate_limit_events: LRUCache = LRUCache(maxsize=50_000)
 _RATE_LIMIT_WINDOW_SECONDS = 60
 
 _metrics_lock = Lock()
@@ -80,14 +82,15 @@ def _enforce_api_key(request: Request) -> None:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing or invalid Authorization header. Use Bearer <api_key>",
         )
-    if token != settings.api_key:
+    if not hmac.compare_digest(token.encode(), settings.api_key.encode()):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid API key")
 
 
 def _client_ip(request: Request) -> str:
     forwarded_for = request.headers.get("X-Forwarded-For", "")
     if forwarded_for.strip():
-        return forwarded_for.split(",", maxsplit=1)[0].strip()
+        # Truncar a 45 chars (longitud máxima de IPv6) para evitar claves gigantes.
+        return forwarded_for.split(",", maxsplit=1)[0].strip()[:45]
     if request.client and request.client.host:
         return request.client.host
     return "unknown"
@@ -101,7 +104,10 @@ def _enforce_rate_limit(request: Request, *, limit: int, bucket: str) -> None:
     window_start = now - _RATE_LIMIT_WINDOW_SECONDS
     key = f"{bucket}:{_client_ip(request)}"
     with _rate_limit_lock:
-        events = _rate_limit_events[key]
+        events = _rate_limit_events.get(key)
+        if events is None:
+            events = deque()
+            _rate_limit_events[key] = events
         while events and events[0] < window_start:
             events.popleft()
         if len(events) >= limit:
