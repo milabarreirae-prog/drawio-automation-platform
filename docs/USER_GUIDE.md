@@ -112,6 +112,19 @@ La imagen incluye Node.js + elkjs, así que el contenedor usa ELK real.
 | `C4NORM_LLM_API_BASE` | `https://api.openai.com/v1` | Endpoint OpenAI-compatible (ver §7) |
 | `C4NORM_LLM_API_KEY` | (vacío) | Clave del LLM (requerida para `--classifier llm/auto`) |
 | `C4NORM_LLM_MODEL` | `gpt-4o-mini` | Modelo del LLM |
+| `C4NORM_LLM_TIMEOUT` | 120 | Timeout (s) de cada llamada al LLM |
+| `C4NORM_LLM_BATCH_SIZE` | 20 | Nodos por lote enviados al LLM |
+| `C4NORM_LLM_MAX_PARALLEL` | 4 | Lotes del LLM procesados en paralelo |
+| `C4NORM_VISION_TIMEOUT` | 120 | Timeout (s) de la llamada de visión |
+
+### Concurrencia y rendimiento
+
+- Los lotes del clasificador LLM se procesan **en paralelo** (hasta `C4NORM_LLM_MAX_PARALLEL`):
+  un diagrama de 60 nodos con `batch_size=20` hace 3 llamadas concurrentes en vez de 3 en serie.
+- Los endpoints que llaman al LLM (`/normalize` con `classifier=llm`, `/from-image`) son
+  síncronos: FastAPI los ejecuta en su **threadpool** (no bloquean `/health` ni `/metrics`).
+  Bajo alta concurrencia de llamadas LLM lentas, el threadpool puede saturarse; en producción
+  conviene limitar con `uvicorn --limit-concurrency N` y/o escalar horizontalmente.
 
 ## 7. Clasificador LLM
 
