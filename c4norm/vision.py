@@ -205,34 +205,34 @@ class VisionExtractor:
 
         b64 = base64.b64encode(image_bytes).decode("ascii")
         mime = _mime_type(image_bytes)
-        response = httpx.post(
-            f"{self.api_base.rstrip('/')}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": self.model,
-                "temperature": 0,
-                "messages": [
-                    {"role": "system", "content": _VISION_SYSTEM},
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image_url",
-                                "image_url": {"url": f"data:{mime};base64,{b64}"},
-                            },
-                            {"type": "text", "text": prompt},
-                        ],
-                    },
-                ],
-            },
-            timeout=self.timeout,
-        )
-        if not response.is_success:
-            body = response.text[:500]
-            raise ValueError(
-                f"Vision LLM devolvió {response.status_code}: {body}"
+        try:
+            response = httpx.post(
+                f"{self.api_base.rstrip('/')}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": self.model,
+                    "temperature": 0,
+                    "messages": [
+                        {"role": "system", "content": _VISION_SYSTEM},
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "image_url",
+                                    "image_url": {"url": f"data:{mime};base64,{b64}"},
+                                },
+                                {"type": "text", "text": prompt},
+                            ],
+                        },
+                    ],
+                },
+                timeout=self.timeout,
             )
+        except httpx.RequestError as exc:
+            raise ValueError(f"VisionExtractor: error de red al contactar {self.api_base}: {exc}") from exc
+        if not response.is_success:
+            raise ValueError(f"VisionExtractor: el proveedor devolvió {response.status_code}: {response.text[:300]}")
         return str(response.json()["choices"][0]["message"]["content"])

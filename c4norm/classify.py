@@ -248,21 +248,25 @@ class LLMClassifier(C4Classifier):
     def _openai_chat(self, prompt: str) -> str:  # pragma: no cover - requiere red
         import httpx
 
-        response = httpx.post(
-            f"{self.api_base.rstrip('/')}/chat/completions",
-            headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
-            json={
-                "model": self.model,
-                "temperature": 0,
-                "response_format": {"type": "json_object"},
-                "messages": [
-                    {"role": "system", "content": _LLM_SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt},
-                ],
-            },
-            timeout=self.timeout,
-        )
-        response.raise_for_status()
+        try:
+            response = httpx.post(
+                f"{self.api_base.rstrip('/')}/chat/completions",
+                headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+                json={
+                    "model": self.model,
+                    "temperature": 0,
+                    "response_format": {"type": "json_object"},
+                    "messages": [
+                        {"role": "system", "content": _LLM_SYSTEM_PROMPT},
+                        {"role": "user", "content": prompt},
+                    ],
+                },
+                timeout=self.timeout,
+            )
+        except httpx.RequestError as exc:
+            raise ValueError(f"LLMClassifier: error de red al contactar {self.api_base}: {exc}") from exc
+        if not response.is_success:
+            raise ValueError(f"LLMClassifier: el proveedor devolvió {response.status_code}: {response.text[:300]}")
         return str(response.json()["choices"][0]["message"]["content"])
 
     def _ask_batched(self, nodes: list[Node], edges: list[Edge], c4_level: int) -> dict[str, object]:

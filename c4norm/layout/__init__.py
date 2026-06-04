@@ -33,6 +33,21 @@ def get_layout_engine(prefer: str = "auto") -> LayoutEngine:
     return LayeredLayout()
 
 
+def run_with_fallback(engine: LayoutEngine, diagram: object) -> tuple[LayoutEngine, str]:
+    """Ejecuta el motor de layout; si falla con RuntimeError, cae al fallback Python.
+
+    Devuelve ``(engine_usado, nombre)`` para que el llamador pueda usar
+    el motor correcto en re-layouts posteriores (ej. multi-hoja).
+    """
+    try:
+        engine.run(diagram)  # type: ignore[arg-type]
+        return engine, engine_name(engine)
+    except RuntimeError:
+        fallback = LayeredLayout()
+        fallback.run(diagram)  # type: ignore[arg-type]
+        return fallback, engine_name(fallback)
+
+
 def engine_name(engine: LayoutEngine) -> str:
     return type(engine).__name__
 

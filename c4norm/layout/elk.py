@@ -105,12 +105,15 @@ class ElkLayout:
             raise RuntimeError("ELK no disponible: falta Node o elkjs")
 
         graph = self._build_graph(diagram)
-        proc = subprocess.run(
-            [self.node_bin, str(_RUNNER)],
-            input=json.dumps(graph).encode("utf-8"),
-            capture_output=True,
-            timeout=60,
-        )
+        try:
+            proc = subprocess.run(
+                [self.node_bin, str(_RUNNER)],
+                input=json.dumps(graph).encode("utf-8"),
+                capture_output=True,
+                timeout=60,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError("ELK timeout (60 s): proceso Node tardó demasiado") from exc
         if proc.returncode != 0:
             raise RuntimeError(f"ELK falló: {proc.stderr.decode('utf-8', 'replace')[:500]}")
         result = json.loads(proc.stdout.decode("utf-8"))
