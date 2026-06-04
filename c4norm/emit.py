@@ -330,7 +330,7 @@ def _emit_page(
 
 def _style_for(node: Node) -> str:
     spec = C4_SPEC[node.c4_type or C4Type.CONTAINER]
-    if node.external and node.c4_type in (C4Type.SOFTWARE_SYSTEM, C4Type.DATABASE):
+    if node.external and node.c4_type in (C4Type.SOFTWARE_SYSTEM, C4Type.DATABASE, C4Type.PERSON):
         return external_style(node.c4_type)
     return spec.cell_style
 
