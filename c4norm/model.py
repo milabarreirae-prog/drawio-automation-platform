@@ -213,6 +213,7 @@ class Annotation:
     id: str
     value: str = ""   # etiqueta HTML original (sin sanear)
     style: str = ""   # estilo draw.io original (note/text/swimlane de leyenda…)
+    kind: str = "note"  # "note" | "text" | "legend"
     x: float = 0.0
     y: float = 0.0
     width: float = 120.0

@@ -86,6 +86,16 @@ class NormalizeRequest(BaseModel):
     run_compliance_check: bool = Field(
         default=False, description="Si true, corre el linter de compliance sobre el XML C4 de salida."
     )
+    context: str = Field(
+        default="",
+        max_length=500_000,
+        description="Documento de dominio (texto) que el LLM usa para enriquecer el diagrama.",
+    )
+    enrich: bool = Field(
+        default=False,
+        description="Si true y hay LLM, potencia el diagrama (descr/relaciones, estandariza, "
+        "fusiona duplicados, título→cajetín, leyenda→clave C4). Requiere C4NORM_LLM_API_KEY.",
+    )
 
 
 class NormalizeReportModel(BaseModel):
@@ -98,8 +108,11 @@ class NormalizeReportModel(BaseModel):
     edge_count: int = 0
     inferred_edges: int = 0
     grounded_nodes: int = 0
+    merged_nodes: int = 0
+    enriched: bool = False
     type_histogram: dict[str, int] = Field(default_factory=dict)
     low_confidence: list[str] = Field(default_factory=list)
+    changelog: list[str] = Field(default_factory=list)
     scale: str = "1:1"
     overflow: bool = False
     sheet: str = "A3"

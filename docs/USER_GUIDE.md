@@ -65,6 +65,8 @@ uvicorn api.main:app --reload      # http://localhost:8000  ·  docs en /docs
 | `classifier` | heuristic·llm·auto | heuristic | Clasificador |
 | `title_block` | objeto | null | `project, title, doc_type, drawn_by, approved_by, date, revision, organization, doc_number` |
 | `run_compliance_check` | bool | false | Corre el linter de compliance sobre la salida |
+| `context` | string | "" | Documento de dominio (texto) que el LLM usa para enriquecer (ver §10) |
+| `enrich` | bool | false | Activa la pasada de enriquecimiento con IA (requiere `C4NORM_LLM_API_KEY`) |
 
 Respuesta:
 
@@ -74,8 +76,9 @@ Respuesta:
   "report": {
     "diagram_name": "Arquitectura N2", "c4_level": 2,
     "node_count": 6, "annotation_count": 0, "edge_count": 5, "inferred_edges": 0, "grounded_nodes": 0,
+    "merged_nodes": 0, "enriched": false,
     "type_histogram": {"Person": 1, "Container": 4, "Database": 1},
-    "low_confidence": [], "scale": "1:1", "overflow": false,
+    "low_confidence": [], "changelog": [], "scale": "1:1", "overflow": false,
     "sheet": "A4", "orientation": "portrait", "engine": "ElkLayout",
     "sheets": 1, "cross_sheet_edges": 0
   },
@@ -205,13 +208,39 @@ emitidas llevan el id prefijado `anno-`.
 > —p.ej. el LLM— degrada una zona contenedora a un tipo hoja, el motor lo corrige
 > y lo avisa en `report.warnings`, evitando que los hijos queden sobre una caja sólida.
 
-## 10. Principio: el motor nunca inventa
+## 10. Enriquecimiento con IA (`enrich=true`)
+
+Con `enrich=true` (y `C4NORM_LLM_API_KEY`), tras clasificar se ejecuta una pasada de
+LLM que **potencia** el diagrama usando el campo `context` como **dominio del proyecto**
+(p.ej. el catálogo de componentes en texto). El LLM:
+
+- **Nutre** descripciones y tecnologías de los nodos existentes con el contexto.
+- **Estandariza** nombres y **fusiona** duplicados evidentes (re-apunta sus aristas).
+- **Mejora** las descripciones de las relaciones.
+- **Integra lo no-C4 de forma estándar**: el **título** va al cajetín (deja de flotar);
+  la **leyenda** original (cuyos colores ya no aplican) se reemplaza por una **clave C4
+  limpia** generada con los tipos presentes; las **notas** se reescriben concisas.
+
+Sigue el principio **«el motor nunca inventa»**: no añade nodos ni inyecta estado futuro
+(To-Be); lo que infiere del contexto y no consta en el diagrama lo marca `(por validar)`,
+y **cada cambio** queda en `report.changelog`. Es una llamada de LLM con prompt grande,
+así que puede tardar (sube `C4NORM_LLM_TIMEOUT` si hace falta). El `context` es texto: si
+tu fuente es un PDF, extrae el texto antes (la API no parsea PDFs).
+
+```bash
+curl -s http://localhost:8000/api/v1/diagram/normalize \
+  -H "Content-Type: application/json" \
+  -d '{"xml_content":"<mxGraphModel>...</mxGraphModel>","c4_level":3,
+       "classifier":"auto","enrich":true,"context":"Catálogo de componentes: ..."}'
+```
+
+## 11. Principio: el motor nunca inventa
 
 c4norm preserva y eleva lo que existe; lo que falta lo marca, no lo fabrica. La
 metadata epistémica (`Confianza: Baja`, `Estado CMDB: Pendiente`) se conserva en la
 descripción del nodo/relación.
 
-## 11. Problemas frecuentes
+## 12. Problemas frecuentes
 
 | Síntoma | Causa / solución |
 |---------|------------------|

@@ -177,24 +177,24 @@ def _build_diagram(name: str, gm: etree._Element) -> Diagram:
     return diagram
 
 
-def _is_annotation(style: str, parsed: dict[str, str], label: str, is_container: bool) -> bool:
-    """¿La celda es documentación del diagrama (nota, texto suelto, leyenda)?
+def _annotation_kind(style: str, parsed: dict[str, str], label: str, is_container: bool) -> str | None:
+    """Clasifica la celda como anotación y devuelve su clase, o ``None`` si es nodo C4.
 
     Estas celdas NO son nodos C4: se preservan en una capa aparte (``Annotation``)
     en vez de clasificarse —erróneamente— como componentes. Se detectan por:
-      * ``shape=note``            → post-it / nota,
-      * primer token ``text``     → etiqueta de texto suelta (título, fases…),
-      * swimlane cuyo nombre sea  → leyenda / convenciones (su subárbol también).
+      * ``shape=note``            → ``"note"``  (post-it),
+      * primer token ``text``     → ``"text"``  (título, fases, rótulos sueltos),
+      * swimlane cuyo nombre sea  → ``"legend"`` (leyenda/convenciones; su subárbol también).
     """
     if parsed.get("shape") == "note":
-        return True
+        return "note"
     if style.split(";", 1)[0].strip() == "text":
-        return True
+        return "text"
     if is_container:
         first = label_to_text(label).split("\n", 1)[0].strip().lower()
         if first in _ANNOTATION_NAMES:
-            return True
-    return False
+            return "legend"
+    return None
 
 
 def _ingest(
@@ -242,10 +242,11 @@ def _ingest(
 
     # Capa de anotaciones: nota/texto/leyenda (o hijo de una) → se preserva, no
     # se clasifica como nodo C4. Se guarda con etiqueta y estilo originales.
-    if parent in anno_ids or _is_annotation(style, parsed, label, is_container):
+    kind = "legend" if parent in anno_ids else _annotation_kind(style, parsed, label, is_container)
+    if kind is not None:
         anno_ids.add(node_id)
         diagram.annotations.append(
-            Annotation(id=node_id, value=label, style=style, x=abs_x, y=abs_y, width=w, height=h)
+            Annotation(id=node_id, value=label, style=style, kind=kind, x=abs_x, y=abs_y, width=w, height=h)
         )
         return
 

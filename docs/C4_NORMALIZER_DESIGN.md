@@ -158,7 +158,9 @@ POST /api/v1/diagram/normalize
   "c4_level": 2,                 // 1 | 2 | 3 (declarado por el usuario)
   "classifier": "heuristic",    // heuristic | llm | auto
   "title_block": { ... },       // opcional: project, title, doc_type, drawn_by, ...
-  "run_compliance_check": false  // opcional: linter sobre el XML de salida
+  "run_compliance_check": false, // opcional: linter sobre el XML de salida
+  "context": "",                // opcional: documento de dominio (texto) para enriquecer
+  "enrich": false                // opcional: pasada de enriquecimiento IA (requiere LLM)
 }
 → {
     "xml_c4": "...",
@@ -166,7 +168,11 @@ POST /api/v1/diagram/normalize
       "node_count",
       "annotation_count",   // notas/textos/leyendas preservados como capa aparte
       "edge_count", "inferred_edges", "grounded_nodes",
-      "type_histogram", "low_confidence", "scale", "overflow",
+      "merged_nodes",       // duplicados fusionados por el enriquecedor IA
+      "enriched",           // true si corrió la pasada de enriquecimiento
+      "type_histogram", "low_confidence",
+      "changelog",          // qué cambió el LLM al enriquecer (transparencia)
+      "scale", "overflow",
       "sheet", "orientation", "engine",
       "sheets",             // hojas generadas (≥2 si hubo descomposición)
       "cross_sheet_edges"   // aristas que cruzan hojas (no se dibujan)

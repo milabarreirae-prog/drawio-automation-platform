@@ -312,6 +312,8 @@ def normalize_diagram(payload: NormalizeRequest, request: Request) -> NormalizeR
         c4_level=payload.c4_level,
         classifier=payload.classifier,
         title_block=title_block,
+        context=payload.context,
+        enrich=payload.enrich,
     )
 
     compliance = None
