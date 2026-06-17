@@ -203,12 +203,30 @@ class Edge:
 
 
 @dataclass
+class Annotation:
+    """Celda de anotación (nota, texto, leyenda) que se preserva tal cual.
+
+    No es un nodo C4: no se clasifica ni participa del layout C4. Conserva su
+    etiqueta HTML y estilo originales; las coordenadas son ABSOLUTAS.
+    """
+
+    id: str
+    value: str = ""   # etiqueta HTML original (sin sanear)
+    style: str = ""   # estilo draw.io original (note/text/swimlane de leyenda…)
+    x: float = 0.0
+    y: float = 0.0
+    width: float = 120.0
+    height: float = 60.0
+
+
+@dataclass
 class Diagram:
     """Modelo lógico completo de una página de diagrama."""
 
     name: str = "Diagram"
     nodes: list[Node] = field(default_factory=list)
     edges: list[Edge] = field(default_factory=list)
+    annotations: list[Annotation] = field(default_factory=list)
 
     def node_by_id(self, node_id: str) -> Node | None:
         return next((n for n in self.nodes if n.id == node_id), None)

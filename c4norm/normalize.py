@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from c4norm.classify import get_classifier
+from c4norm.classify import enforce_container_types, get_classifier
 from c4norm.emit import emit_c4
 from c4norm.ground import ground_floating_nodes
 from c4norm.model import C4Type
@@ -29,6 +29,7 @@ class NormalizeReport:
     diagram_name: str = ""
     c4_level: int = 2
     node_count: int = 0
+    annotation_count: int = 0
     edge_count: int = 0
     inferred_edges: int = 0
     grounded_nodes: int = 0
@@ -78,6 +79,15 @@ def normalize(
     clf = get_classifier(classifier)
     clf.classify(diagram, c4_level)
 
+    # Invariante: los nodos con hijos deben ser DeploymentNode (único boundary del
+    # spec). Corrige degradaciones del clasificador que romperían el anidamiento.
+    retyped_containers = enforce_container_types(diagram)
+    if retyped_containers:
+        warnings.append(
+            f"{retyped_containers} nodo(s) con hijos se reclasificaron a DeploymentNode "
+            f"para preservar el anidamiento (un contenedor no puede ser un tipo hoja)."
+        )
+
     grounded = ground_floating_nodes(diagram)
 
     histogram: dict[str, int] = {}
@@ -95,6 +105,7 @@ def normalize(
         diagram_name=diagram.name,
         c4_level=c4_level,
         node_count=len(diagram.nodes),
+        annotation_count=len(diagram.annotations),
         edge_count=len(diagram.edges),
         inferred_edges=sum(1 for e in diagram.edges if e.inferred),
         grounded_nodes=grounded,

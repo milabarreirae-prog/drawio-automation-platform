@@ -22,6 +22,7 @@ from c4norm.layout import LayoutEngine, get_layout_engine, run_with_fallback
 from c4norm.model import (
     C4_SPEC,
     RELATIONSHIP_STYLE,
+    Annotation,
     C4Type,
     Diagram,
     Node,
@@ -58,7 +59,8 @@ class EmitResult:
 # =============================================================================
 
 
-def _content_bbox(diagram: Diagram) -> tuple[float, float]:
+def _node_bbox(diagram: Diagram) -> tuple[float, float]:
+    """Tamaño del contenido C4 (sólo nodos de nivel superior)."""
     top = [n for n in diagram.nodes if not n.parent]
     if not top:
         return 1.0, 1.0
@@ -69,19 +71,36 @@ def _content_bbox(diagram: Diagram) -> tuple[float, float]:
     return max(1.0, maxx - minx), max(1.0, maxy - miny)
 
 
+def _content_bbox(diagram: Diagram) -> tuple[float, float]:
+    """Tamaño total a encuadrar: nodos C4 + banda de anotaciones."""
+    xs = [n.x for n in diagram.nodes if not n.parent]
+    ys = [n.y for n in diagram.nodes if not n.parent]
+    xe = [n.x + n.width for n in diagram.nodes if not n.parent]
+    ye = [n.y + n.height for n in diagram.nodes if not n.parent]
+    for a in diagram.annotations:
+        xs.append(a.x)
+        ys.append(a.y)
+        xe.append(a.x + a.width)
+        ye.append(a.y + a.height)
+    if not xs:
+        return 1.0, 1.0
+    return max(1.0, max(xe) - min(xs)), max(1.0, max(ye) - min(ys))
+
+
 def _scale_only(diagram: Diagram, area: DrawArea) -> float:
-    """Escala a la que el contenido cabe en `area` (sin mutar el diagrama)."""
-    cw, ch = _content_bbox(diagram)
+    """Escala a la que el contenido C4 cabe en `area` (sin mutar el diagrama)."""
+    cw, ch = _node_bbox(diagram)
     return min(1.0, area.width / cw, area.height / ch)
 
 
 def _fit(diagram: Diagram, area: DrawArea) -> tuple[float, bool]:
     top = [n for n in diagram.nodes if not n.parent]
-    if not top:
+    annos = diagram.annotations
+    if not top and not annos:
         return 1.0, False
     cw, ch = _content_bbox(diagram)
-    minx = min(n.x for n in top)
-    miny = min(n.y for n in top)
+    minx = min([n.x for n in top] + [a.x for a in annos])
+    miny = min([n.y for n in top] + [a.y for a in annos])
 
     s = min(1.0, area.width / cw, area.height / ch)
     overflow = s < _MIN_SCALE
@@ -103,10 +122,46 @@ def _fit(diagram: Diagram, area: DrawArea) -> tuple[float, bool]:
             n.y *= s
             n.width *= s
             n.height *= s
+    for a in annos:
+        a.x, a.y = tx(a.x, a.y)
+        a.width *= s
+        a.height *= s
     for e in diagram.edges:
         if e.route:
             e.route = [tx(px, py) for px, py in e.route]
     return s, overflow
+
+
+def _position_annotations(diagram: Diagram, gap: float = 80.0) -> None:
+    """Reubica las anotaciones en una banda BAJO el contenido C4.
+
+    Tras el layout, los nodos C4 viven en el espacio del motor (ELK) y las
+    anotaciones aún en coordenadas de origen. Se escala el cúmulo de anotaciones
+    para que quepa en una caja del tamaño del diagrama y se traslada justo debajo,
+    preservando su disposición relativa (el motor no reordena lo que el autor situó).
+    """
+    annos = diagram.annotations
+    top = [n for n in diagram.nodes if not n.parent]
+    if not annos or not top:
+        return
+    nminx = min(n.x for n in top)
+    nmaxx = max(n.x + n.width for n in top)
+    nmaxy = max(n.y + n.height for n in top)
+    cw = max(1.0, nmaxx - nminx)
+    chh = max(1.0, nmaxy - min(n.y for n in top))
+
+    aminx = min(a.x for a in annos)
+    aminy = min(a.y for a in annos)
+    aw = max(1.0, max(a.x + a.width for a in annos) - aminx)
+    ah = max(1.0, max(a.y + a.height for a in annos) - aminy)
+
+    sa = min(cw / aw, chh / ah)  # encajar el cúmulo en una caja ≤ tamaño del diagrama
+    band_x, band_y = nminx, nmaxy + gap
+    for a in annos:
+        a.x = band_x + (a.x - aminx) * sa
+        a.y = band_y + (a.y - aminy) * sa
+        a.width = max(1.0, a.width * sa)
+        a.height = max(1.0, a.height * sa)
 
 
 # =============================================================================
@@ -211,7 +266,7 @@ def emit_c4(
     base_tb = title_block or TitleBlock(title=diagram.name)
 
     engine, motor = run_with_fallback(get_layout_engine(), diagram)  # fallback si ELK falla/timeout
-    cw, ch = _content_bbox(diagram)
+    cw, ch = _node_bbox(diagram)
     _, _, area, _, _ = fit_page(cw, ch)
     boundaries = [n for n in diagram.nodes if not n.parent and n.c4_type is C4Type.DEPLOYMENT_NODE]
     needs_split = _scale_only(diagram, area) < _MIN_SCALE and len(boundaries) >= 2
@@ -242,6 +297,9 @@ def emit_c4(
 
     # Multi-hoja: una hoja por boundary + "Contexto".
     pages = _decompose(diagram)
+    # Las anotaciones (documentación global) van en la primera hoja (Contexto).
+    if diagram.annotations and pages:
+        pages[0][1].annotations = list(diagram.annotations)
     blocks: list[str] = []
     worst_scale = 1.0
     any_overflow = False
@@ -297,6 +355,7 @@ def _emit_page(
     if relayout:
         engine.run(sub)
 
+    _position_annotations(sub)  # banda de notas/leyenda bajo el contenido C4
     cw, ch = _content_bbox(sub)
     page_w, page_h, area, fmt, orientation = fit_page(cw, ch)
     scale, overflow = _fit(sub, area)
@@ -327,6 +386,8 @@ def _emit_page(
     for edge in sub.edges:
         if edge.source and edge.target:
             lines.append(_emit_edge(edge, font, abs_pos))
+    for annotation in sub.annotations:
+        lines.append(_emit_annotation(annotation))
     lines += ["      </root>", "    </mxGraphModel>", "  </diagram>"]
     return lines, scale, overflow, fmt, orientation
 
@@ -352,6 +413,21 @@ def _emit_node(node: Node, font: int) -> str:
         f'width="{node.width:.0f}" height="{node.height:.0f}" as="geometry" />\n'
         f"          </mxCell>\n"
         f"        </object>"
+    )
+
+
+def _emit_annotation(annotation: Annotation) -> str:
+    """Emite una anotación (nota/texto/leyenda) preservando su estilo y etiqueta originales.
+
+    No es un objeto C4 (sin metadata c4*): es documentación del diagrama, se conserva
+    tal cual. El id se prefija ``anno-`` para no colisionar con nodos C4.
+    """
+    return (
+        f'        <mxCell id="anno-{_attr(annotation.id)}" value="{_attr(annotation.value)}" '
+        f'style="{_attr(annotation.style)}" parent="1" vertex="1">\n'
+        f'          <mxGeometry x="{annotation.x:.0f}" y="{annotation.y:.0f}" '
+        f'width="{annotation.width:.0f}" height="{annotation.height:.0f}" as="geometry" />\n'
+        f"        </mxCell>"
     )
 
 

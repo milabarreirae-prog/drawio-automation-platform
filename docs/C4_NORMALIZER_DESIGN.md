@@ -163,7 +163,9 @@ POST /api/v1/diagram/normalize
 → {
     "xml_c4": "...",
     "report": {
-      "node_count", "edge_count", "inferred_edges", "grounded_nodes",
+      "node_count",
+      "annotation_count",   // notas/textos/leyendas preservados como capa aparte
+      "edge_count", "inferred_edges", "grounded_nodes",
       "type_histogram", "low_confidence", "scale", "overflow",
       "sheet", "orientation", "engine",
       "sheets",             // hojas generadas (≥2 si hubo descomposición)
@@ -190,6 +192,8 @@ Ver `docs/USER_GUIDE.md §4` para ejemplos completos.
 | Grupos vacíos, coords negativas, waypoints duplicados, páginas casi-duplicadas | 2 | Limpieza / dedup |
 | Cajas uniformes gigantes, sin ajuste al texto | 4 | Tamaño canónico C4 por tipo + ajuste al label |
 | Sin paleta semántica | 3-4 | Clasificación C4 → estilo canónico |
+| Notas/textos/leyendas tomados como componentes | 1 | Capa de anotaciones: se preservan aparte, no se clasifican |
+| Zona contenedora degradada a tipo hoja (LLM) | 3 | Invariante: nodo con hijos → `DeploymentNode` |
 
 ---
 

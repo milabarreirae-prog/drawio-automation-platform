@@ -94,6 +94,7 @@ class NormalizeReportModel(BaseModel):
     diagram_name: str = ""
     c4_level: int = 2
     node_count: int = 0
+    annotation_count: int = 0
     edge_count: int = 0
     inferred_edges: int = 0
     grounded_nodes: int = 0

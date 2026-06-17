@@ -73,7 +73,7 @@ Respuesta:
   "xml_c4": "<mxfile> … </mxfile>",
   "report": {
     "diagram_name": "Arquitectura N2", "c4_level": 2,
-    "node_count": 6, "edge_count": 5, "inferred_edges": 0, "grounded_nodes": 0,
+    "node_count": 6, "annotation_count": 0, "edge_count": 5, "inferred_edges": 0, "grounded_nodes": 0,
     "type_histogram": {"Person": 1, "Container": 4, "Database": 1},
     "low_confidence": [], "scale": "1:1", "overflow": false,
     "sheet": "A4", "orientation": "portrait", "engine": "ElkLayout",
@@ -184,13 +184,34 @@ salida se parte en **una hoja por sitio** (vista de deployment) + una hoja
 "Contexto". Las aristas que cruzan hojas se cuentan en `report.cross_sheet_edges`
 (no se dibujan: una vista no debe insinuar conexiones que no contiene).
 
-## 9. Principio: el motor nunca inventa
+## 9. Anotaciones (notas, textos, leyendas)
+
+Un diagrama crudo suele traer **documentación** que no es arquitectura: post-its
+(`shape=note`), títulos y rótulos de texto suelto (`style=text`) y bloques de
+**leyenda** (swimlane llamado «Leyenda», «Notas» o «Convenciones», con sus celdas
+de ejemplo). c4norm las detecta y las trata como una **capa de anotaciones**:
+
+- **No** se clasifican como nodos C4 (no entran en `type_histogram` ni en
+  `node_count`; se cuentan aparte en `annotation_count`).
+- Se **preservan tal cual** —etiqueta y estilo originales— y se reubican en una
+  banda bajo el diagrama, conservando su disposición relativa.
+- Las aristas que apuntaban a una anotación se descartan (no son relaciones C4).
+
+Así el modelo C4 queda limpio sin perder la documentación del autor. Las celdas
+emitidas llevan el id prefijado `anno-`.
+
+> **Invariante de anidamiento.** Un nodo con hijos siempre se emite como
+> `DeploymentNode` (el único tipo *boundary* del estándar). Si un clasificador
+> —p.ej. el LLM— degrada una zona contenedora a un tipo hoja, el motor lo corrige
+> y lo avisa en `report.warnings`, evitando que los hijos queden sobre una caja sólida.
+
+## 10. Principio: el motor nunca inventa
 
 c4norm preserva y eleva lo que existe; lo que falta lo marca, no lo fabrica. La
 metadata epistémica (`Confianza: Baja`, `Estado CMDB: Pendiente`) se conserva en la
 descripción del nodo/relación.
 
-## 10. Problemas frecuentes
+## 11. Problemas frecuentes
 
 | Síntoma | Causa / solución |
 |---------|------------------|

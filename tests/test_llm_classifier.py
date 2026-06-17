@@ -8,7 +8,12 @@ import json
 
 import pytest
 
-from c4norm.classify import HeuristicClassifier, LLMClassifier, get_classifier
+from c4norm.classify import (
+    HeuristicClassifier,
+    LLMClassifier,
+    enforce_container_types,
+    get_classifier,
+)
 from c4norm.model import C4Type, Diagram, Edge, Node
 
 
@@ -39,6 +44,28 @@ def test_llm_retypes_nodes() -> None:
     assert d.node_by_id("a").c4_type is C4Type.PERSON
     assert d.node_by_id("b").c4_type is C4Type.CONTAINER
     assert d.node_by_id("b").c4_technology == "Python"
+
+
+def test_enforce_container_types_fixes_demoted_parent() -> None:
+    """Un nodo con hijos degradado a un tipo hoja se fuerza a DeploymentNode."""
+    d = Diagram(
+        name="t",
+        nodes=[
+            Node(id="zone", raw_label="Sistemas Satélite", c4_type=C4Type.CONTAINER),
+            Node(id="sat", raw_label="SAT", parent="zone", c4_type=C4Type.COMPONENT),
+        ],
+    )
+    fixed = enforce_container_types(d)
+    assert fixed == 1
+    assert d.node_by_id("zone").c4_type is C4Type.DEPLOYMENT_NODE  # forzado
+    assert d.node_by_id("sat").c4_type is C4Type.COMPONENT          # hoja intacta
+
+
+def test_enforce_container_types_leaves_childless_nodes() -> None:
+    """No toca nodos sin hijos (idempotente sobre hojas)."""
+    d = Diagram(name="t", nodes=[Node(id="x", c4_type=C4Type.COMPONENT)])
+    assert enforce_container_types(d) == 0
+    assert d.node_by_id("x").c4_type is C4Type.COMPONENT
 
 
 def test_invalid_type_keeps_heuristic() -> None:
