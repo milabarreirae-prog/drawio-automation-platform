@@ -14,11 +14,13 @@ import re
 
 from lxml import etree
 
-from c4norm.model import Diagram, Edge, Node
+from c4norm.model import Annotation, Diagram, Edge, Node
 
 _TAG = re.compile(r"<[^>]+>")
 _BR = re.compile(r"<br\s*/?>|</div>|</p>", re.IGNORECASE)
 _CONTAINER_HINTS = ("swimlane", "group", "mxgraph.c4.dynamic", "umllifeline")
+#: Nombres (primera línea) que marcan un swimlane como leyenda/notas → anotación.
+_ANNOTATION_NAMES = {"leyenda", "legend", "notas", "notes", "convenciones"}
 
 
 # =============================================================================
@@ -141,6 +143,10 @@ def _build_diagram(name: str, gm: etree._Element) -> Diagram:
 
     diagram = Diagram(name=name)
     seen_cells: set[etree._Element] = set()
+    # Posición absoluta acumulada por id (para reubicar anotaciones anidadas) y
+    # conjunto de ids que son anotación (para arrastrar el subárbol de la leyenda).
+    abs_pos: dict[str, tuple[float, float]] = {}
+    anno_ids: set[str] = set()
 
     # 1) Nodos/aristas envueltos en <object> (portan metadata c4*).
     for obj in root_el.findall("object"):
@@ -151,7 +157,7 @@ def _build_diagram(name: str, gm: etree._Element) -> Diagram:
         node_id = obj.get("id") or cell.get("id") or ""
         label = obj.get("label", "")
         c4_type = obj.get("c4Type")
-        _ingest(diagram, node_id, cell, label, c4_type)
+        _ingest(diagram, node_id, cell, label, c4_type, abs_pos, anno_ids)
 
     # 2) mxCell sueltos (no dentro de un object).
     for cell in root_el.iter("mxCell"):
@@ -160,12 +166,46 @@ def _build_diagram(name: str, gm: etree._Element) -> Diagram:
         node_id = cell.get("id", "")
         if node_id in ("0", "1") or not node_id:
             continue
-        _ingest(diagram, node_id, cell, cell.get("value", ""), None)
+        _ingest(diagram, node_id, cell, cell.get("value", ""), None, abs_pos, anno_ids)
+
+    # Las aristas que tocan una anotación no son relaciones C4: se descartan.
+    if anno_ids:
+        diagram.edges = [
+            e for e in diagram.edges if e.source not in anno_ids and e.target not in anno_ids
+        ]
 
     return diagram
 
 
-def _ingest(diagram: Diagram, node_id: str, cell: etree._Element, label: str, c4_type: str | None) -> None:
+def _annotation_kind(style: str, parsed: dict[str, str], label: str, is_container: bool) -> str | None:
+    """Clasifica la celda como anotación y devuelve su clase, o ``None`` si es nodo C4.
+
+    Estas celdas NO son nodos C4: se preservan en una capa aparte (``Annotation``)
+    en vez de clasificarse —erróneamente— como componentes. Se detectan por:
+      * ``shape=note``            → ``"note"``  (post-it),
+      * primer token ``text``     → ``"text"``  (título, fases, rótulos sueltos),
+      * swimlane cuyo nombre sea  → ``"legend"`` (leyenda/convenciones; su subárbol también).
+    """
+    if parsed.get("shape") == "note":
+        return "note"
+    if style.split(";", 1)[0].strip() == "text":
+        return "text"
+    if is_container:
+        first = label_to_text(label).split("\n", 1)[0].strip().lower()
+        if first in _ANNOTATION_NAMES:
+            return "legend"
+    return None
+
+
+def _ingest(
+    diagram: Diagram,
+    node_id: str,
+    cell: etree._Element,
+    label: str,
+    c4_type: str | None,
+    abs_pos: dict[str, tuple[float, float]],
+    anno_ids: set[str],
+) -> None:
     style = cell.get("style", "")
     parsed = parse_style(style)
     parent = cell.get("parent")
@@ -194,6 +234,22 @@ def _ingest(diagram: Diagram, node_id: str, cell: etree._Element, label: str, c4
         or parsed.get("container") == "1"
         or "group" in style.lower()
     )
+
+    # Posición absoluta (acumula el offset de los padres ya vistos en orden).
+    px, py = abs_pos.get(parent or "", (0.0, 0.0))
+    abs_x, abs_y = px + x, py + y
+    abs_pos[node_id] = (abs_x, abs_y)
+
+    # Capa de anotaciones: nota/texto/leyenda (o hijo de una) → se preserva, no
+    # se clasifica como nodo C4. Se guarda con etiqueta y estilo originales.
+    kind = "legend" if parent in anno_ids else _annotation_kind(style, parsed, label, is_container)
+    if kind is not None:
+        anno_ids.add(node_id)
+        diagram.annotations.append(
+            Annotation(id=node_id, value=label, style=style, kind=kind, x=abs_x, y=abs_y, width=w, height=h)
+        )
+        return
+
     diagram.nodes.append(
         Node(
             id=node_id,

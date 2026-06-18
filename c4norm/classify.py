@@ -334,6 +334,24 @@ class LLMClassifier(C4Classifier):
         raise ValueError(f"LLMClassifier: respuesta inválida tras {self.retries + 1} intentos: {last_error}")
 
 
+def enforce_container_types(diagram: Diagram) -> int:
+    """Invariante de motor: un nodo CON HIJOS debe ser un tipo capaz de contener.
+
+    ``C4_SPEC`` solo define ``DeploymentNode`` como boundary (``container=1``). Si un
+    clasificador —típicamente el LLM— tipa como Container/Component/SoftwareSystem un
+    nodo que tiene hijos, esos hijos quedarían dibujados sobre una caja sólida. Aquí se
+    fuerza ``DeploymentNode`` en esos nodos, preservando nombre/descr/tech. Es idempotente
+    y no toca nodos hoja. Devuelve cuántos corrigió.
+    """
+    parents = {n.parent for n in diagram.nodes if n.parent}
+    fixed = 0
+    for node in diagram.nodes:
+        if node.id in parents and node.c4_type is not C4Type.DEPLOYMENT_NODE:
+            node.c4_type = C4Type.DEPLOYMENT_NODE
+            fixed += 1
+    return fixed
+
+
 def get_classifier(mode: str = "heuristic") -> C4Classifier:
     """Fábrica: ``heuristic`` | ``llm`` | ``auto``.
 

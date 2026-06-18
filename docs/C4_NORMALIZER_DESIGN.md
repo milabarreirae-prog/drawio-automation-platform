@@ -158,13 +158,21 @@ POST /api/v1/diagram/normalize
   "c4_level": 2,                 // 1 | 2 | 3 (declarado por el usuario)
   "classifier": "heuristic",    // heuristic | llm | auto
   "title_block": { ... },       // opcional: project, title, doc_type, drawn_by, ...
-  "run_compliance_check": false  // opcional: linter sobre el XML de salida
+  "run_compliance_check": false, // opcional: linter sobre el XML de salida
+  "context": "",                // opcional: documento de dominio (texto) para enriquecer
+  "enrich": false                // opcional: pasada de enriquecimiento IA (requiere LLM)
 }
 → {
     "xml_c4": "...",
     "report": {
-      "node_count", "edge_count", "inferred_edges", "grounded_nodes",
-      "type_histogram", "low_confidence", "scale", "overflow",
+      "node_count",
+      "annotation_count",   // notas/textos/leyendas preservados como capa aparte
+      "edge_count", "inferred_edges", "grounded_nodes",
+      "merged_nodes",       // duplicados fusionados por el enriquecedor IA
+      "enriched",           // true si corrió la pasada de enriquecimiento
+      "type_histogram", "low_confidence",
+      "changelog",          // qué cambió el LLM al enriquecer (transparencia)
+      "scale", "overflow",
       "sheet", "orientation", "engine",
       "sheets",             // hojas generadas (≥2 si hubo descomposición)
       "cross_sheet_edges"   // aristas que cruzan hojas (no se dibujan)
@@ -190,6 +198,8 @@ Ver `docs/USER_GUIDE.md §4` para ejemplos completos.
 | Grupos vacíos, coords negativas, waypoints duplicados, páginas casi-duplicadas | 2 | Limpieza / dedup |
 | Cajas uniformes gigantes, sin ajuste al texto | 4 | Tamaño canónico C4 por tipo + ajuste al label |
 | Sin paleta semántica | 3-4 | Clasificación C4 → estilo canónico |
+| Notas/textos/leyendas tomados como componentes | 1 | Capa de anotaciones: se preservan aparte, no se clasifican |
+| Zona contenedora degradada a tipo hoja (LLM) | 3 | Invariante: nodo con hijos → `DeploymentNode` |
 
 ---
 
