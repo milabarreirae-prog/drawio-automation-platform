@@ -24,6 +24,9 @@ Normalizar XML crudo de Draw.io (de IA) a **C4 conforme a estándar** para Confl
   `/health`, `/metrics`, con auth opcional y rate limiting).
 - **Contenedor** (Python + Node/elkjs) que sirve la API.
 - **Guía de usuario** (`docs/USER_GUIDE.md`): instalación, CLI, API, Docker, configuración y troubleshooting.
+- **Badge de gobernanza por nodo** (`Confianza`, `Estado CMDB`): extraídos a campos
+  estructurados (`Node.confidence`/`cmdb_status`) y renderizados como franja discreta en
+  la etiqueta; ausente si el autor no lo declaró (B-01a, `plans/board.md`).
 
 ## ⏳ Pendiente
 
@@ -32,7 +35,7 @@ Ninguno — el roadmap base del prototipo está completo. ✅
 ## 🔭 Futuro (fuera del prototipo)
 
 - Interop **LeanIX** (ETL GraphQL → modelo lógico → este pipeline).
-- Badges / leyenda de estado (`Confianza`, `Estado CMDB`) en el diagrama.
+- Fila de leyenda que explique los badges de `Confianza`/`Estado CMDB` (B-01b, `plans/board.md`).
 - **Rendimiento avanzado** (requiere load-testing para validar):
   - API totalmente **async** (`httpx.AsyncClient`) para que las llamadas LLM no
     consuman un hilo del threadpool durante la espera de red.
