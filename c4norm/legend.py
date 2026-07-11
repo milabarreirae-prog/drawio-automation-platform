@@ -41,8 +41,11 @@ def build_standard_legend(diagram: Diagram, anchor_x: float, anchor_y: float) ->
     if not rows:
         return []
 
+    has_relationship = any(e.source and e.target for e in diagram.edges)
+    has_governance = any(n.confidence or n.cmdb_status for n in diagram.nodes)
+
     cells: list[Annotation] = []
-    n_slots = len(rows) + (1 if any(e.source and e.target for e in diagram.edges) else 0)
+    n_slots = len(rows) + (1 if has_relationship else 0) + (1 if has_governance else 0)
     total_h = _HEADER_H + n_slots * (_ROW_H + _GAP) + 8
 
     # Marco contenedor (se dibuja primero, debajo de las filas).
@@ -90,8 +93,10 @@ def build_standard_legend(diagram: Diagram, anchor_x: float, anchor_y: float) ->
             )
         )
 
+    slot = len(rows)
+
     # Fila de relación (si hay aristas).
-    if any(e.source and e.target for e in diagram.edges):
+    if has_relationship:
         cells.append(
             Annotation(
                 id="legend-relationship",
@@ -99,7 +104,26 @@ def build_standard_legend(diagram: Diagram, anchor_x: float, anchor_y: float) ->
                 style="text;html=1;strokeColor=none;fillColor=none;align=left;spacingLeft=10;fontSize=12;",
                 kind="legend",
                 x=anchor_x,
-                y=y + len(rows) * (_ROW_H + _GAP),
+                y=y + slot * (_ROW_H + _GAP),
+                width=_ROW_W,
+                height=_ROW_H,
+            )
+        )
+        slot += 1
+
+    # Clave de la franja de gobernanza (sólo si algún nodo la trae; nunca inventada).
+    if has_governance:
+        cells.append(
+            Annotation(
+                id="legend-governance",
+                value="Confianza / CMDB: declarado por el autor",
+                style=(
+                    "text;html=1;strokeColor=none;fillColor=none;align=left;"
+                    "spacingLeft=10;fontSize=11;fontColor=#666666;"
+                ),
+                kind="legend",
+                x=anchor_x,
+                y=y + slot * (_ROW_H + _GAP),
                 width=_ROW_W,
                 height=_ROW_H,
             )

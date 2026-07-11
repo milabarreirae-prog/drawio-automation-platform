@@ -13,7 +13,6 @@ actualizado: 2026-07-10
 
 | ID | Tarea | Por qué | Esfuerzo |
 |----|-------|---------|----------|
-| B-01b | **Fila de leyenda para los badges** (clave que explica `Confianza` / `Estado CMDB`) en `legend.py`, sólo si algún nodo la trae | Cierra el badge por-nodo (B-01a) con su convención; el dato ya vive estructurado en el modelo | S |
 | B-02 | **Proceso Node persistente para ELK** (hoy arranca un Node por diagrama, ~100-400 ms) | Rendimiento; prerequisito razonable del async | M |
 | B-03 | **API async** (`httpx.AsyncClient` para LLM; endpoints async) | Escalamiento corporativo; validar con load-test, no de fe | L |
 | B-04 | **ETL LeanIX** (GraphQL `falabella.leanix.net` → modelo lógico → pipeline) | Nutre C4 del inventario real; el SSO lo resuelve aranha-robots (patrón WF-002B) — coordinar, no construir login propio | L |
@@ -21,11 +20,12 @@ actualizado: 2026-07-10
 | B-06 | `wiki/REQUERIMIENTOS_v1.md` (RF/RNF trazados) si el escalamiento corporativo lo exige | Completar GENESIS; hoy los docs de diseño cubren la mayor parte | S |
 
 ## 🟡 EN CURSO
-*(vacío — sembrar desde BACKLOG al abrir el próximo ciclo; sugerida: B-01b)*
+*(vacío — sembrar desde BACKLOG al abrir el próximo ciclo; sugerida: B-02)*
 
 ## 🟢 VERIFICADO
 | Tarea | Evidencia |
 |-------|-----------|
+| **B-01b — Fila de leyenda para los badges** (`legend-governance` en `legend.py`: clave "Confianza / CMDB: declarado por el autor", estilo gris 11px a juego con la franja del nodo; sólo aparece si algún nodo trae `confidence`/`cmdb_status`) | **195 passed, cobertura 93%** (pytest, 2026-07-10); drive real: `emit_c4` sobre diagrama con `confidence="Baja"`/`cmdb_status="Pendiente"` → fila `anno-legend-governance` presente bajo la relación; diagrama sin gobernanza → fila ausente (assert `"legend-governance" not in ids`) |
 | **B-01a — Badge de gobernanza por nodo** (confianza/estado CMDB extraídos a campos estructurados `Node.confidence`/`cmdb_status` y renderizados como franja discreta; nunca inventados) | **194 passed, cobertura 93%** (pytest, 2026-07-10); drive real sobre fixture Falabella: nodo 200 → `Confianza: Baja · CMDB: Pendiente`, descripción preservada aparte |
 | Fundación del alma (CLINE.md, wiki/NUCLEO_DEL_SISTEMA.md, este board; ROL_ORQUESTA.md trackeado) | Suite completa verde al fundar: **191 passed, cobertura 93%** (pytest, 2026-07-10) |
 

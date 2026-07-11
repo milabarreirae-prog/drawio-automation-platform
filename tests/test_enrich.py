@@ -118,7 +118,17 @@ def test_standard_legend_covers_present_types() -> None:
     assert "legend-database" in ids        # hay Database
     assert "legend-deploymentnode" in ids  # hay DeploymentNode
     assert "legend-relationship" in ids    # hay aristas
+    assert "legend-governance" not in ids  # ningún nodo trae confianza/CMDB
     assert all(c.kind == "legend" for c in cells)
+
+
+def test_standard_legend_adds_governance_row_only_when_declared() -> None:
+    d = _sample()
+    d.node_by_id("api").confidence = "Baja"
+    cells = build_standard_legend(d, 0.0, 0.0)
+    gov = next(c for c in cells if c.id == "legend-governance")
+    assert gov.kind == "legend"
+    assert "Confianza" in gov.value and "CMDB" in gov.value
 
 
 # =============================================================================
