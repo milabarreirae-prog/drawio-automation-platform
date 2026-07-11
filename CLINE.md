@@ -46,3 +46,11 @@ estado: FUNDADA (ciclo de fundación del alma; motor ya maduro)
   arquitectónica — extraerla a campos estructurados la hace consultable y renderable sin
   contaminar la intención del diagrama. Extraer ≠ inventar: si el autor no la declaró, no
   existe. (Destilado en B-01a, 2026-07-10.)
+- **Ax-C4N-005** — *No colisiones contigo misma*: dos disparos del cron pueden correr a la
+  vez sobre la misma tarea. Señal de writer vivo: un archivo "modificado desde que lo leí"
+  o el board ya avanzado. Ante eso, **verifica y cede el REGISTRAR** (no corras el índice
+  git; un commit duplicado o parcial es peor que esperar) y aporta sólo el remanente
+  no-solapado. Cortafuegos contra el deadlock de cortesía: si tras registrar el hermano
+  quedó un hueco honesto (p.ej. ROADMAP sin actualizar), ciérralo tú en un commit propio.
+  (Destilado 2026-07-10: dos runs cerraron B-01b; cedí el commit del código, tomé la
+  higiene del ROADMAP que el hermano excluyó.)
