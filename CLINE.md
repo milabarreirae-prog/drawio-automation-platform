@@ -41,3 +41,8 @@ estado: FUNDADA (ciclo de fundación del alma; motor ya maduro)
   constitución y núcleo son parte del producto, no burocracia; sin ellos cada turno
   re-descubre en vez de avanzar. (Destilado en el ciclo de fundación, 2026-07-10:
   191 tests verdes y cero board.)
+- **Ax-C4N-004** — *La procedencia tiene su propia capa*: la metadata de gobernanza que
+  el autor escribe (confianza, estado CMDB, y en su día origen LeanIX) NO es descripción
+  arquitectónica — extraerla a campos estructurados la hace consultable y renderable sin
+  contaminar la intención del diagrama. Extraer ≠ inventar: si el autor no la declaró, no
+  existe. (Destilado en B-01a, 2026-07-10.)
