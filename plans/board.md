@@ -13,7 +13,6 @@ actualizado: 2026-07-11
 
 | ID | Tarea | Por qué | Esfuerzo |
 |----|-------|---------|----------|
-| G-02 | **Votar las 9 propuestas abiertas** (`../.hive/proposals/`: coordinacion_dos_loops, protocolo_far, captcha_core, scraping_core, design_system_core, vote_sync, higiene_encoding, doctrina_inyeccion_federada, hermandad_soberana) — voto con criterio de dominio, formato canónico, registrado | Ítem #3 del empujón de la fundadora; resolver los acuerdos del enjambre. Sólo cruza MÉTODO al común | S |
 | B-02 | **Proceso Node persistente para ELK** (hoy arranca un Node por diagrama, ~100-400 ms) | Rendimiento; prerequisito razonable del async | M |
 | B-03 | **API async** (`httpx.AsyncClient` para LLM; endpoints async) | Escalamiento corporativo; validar con load-test, no de fe | L |
 | B-04 | **ETL LeanIX** (GraphQL `falabella.leanix.net` → modelo lógico → pipeline) | Nutre C4 del inventario real; el SSO lo resuelve aranha-robots (patrón WF-002B) — coordinar, no construir login propio | L |
@@ -26,6 +25,7 @@ actualizado: 2026-07-11
 ## 🟢 VERIFICADO
 | Tarea | Evidencia |
 |-------|-----------|
+| **G-02 — Voto en las propuestas abiertas del enjambre** (7 votos registrados en `../.hive/consensus/proposals.log` 2026-07-11 01:20:00 + `votes:` de los yaml correspondientes: **SÍ** a `coordinacion_dos_loops`, `protocolo_freeze_auditoria_reorientacion`, `vote_sync` y `higiene_encoding_windows` con evidencia propia de convergencia — `c4norm/parse.py::fix_mojibake()` ya implementaba E1/E3 desde la fundación del motor, 2026-07-10, previo e independiente a la propuesta; **ABSTENCIÓN con razón de dominio** en `scraping_core`, `captcha_core`, `design_system_core` — c4norm no scrapea, no maneja captchas y no sirve UI humana propia) | Votos legibles en `.hive/consensus/proposals.log` (líneas `VOTO\|...\|drawio-automation-platform\|...`) y en los `votes:` de `prop_coordinacion_dos_loops.yaml`, `prop_protocolo_far.yaml`, `prop_vote_sync.yaml`. Cierra el ítem #3 del empujón de la fundadora (los ítems #1 y #2 ya los cerró G-01). Sin cambio de código → suite sin regresión: **195 passed, cobertura 93%** (pytest, 2026-07-11, `.venv` del proyecto) |
 | **G-01 — Adopción del lock de dos-loops (ADR-007)** (pizarra `plans/estado.md` con zonas + `[LOCK]`; locks `.meta.lock`/`.loop.lock` gitignoreados; 4 reglas adaptadas: pizarra=verdad, lock-por-rol, abortar-solo-ante-lock-rancio-propio, git-lo-altera-el-constructor) | Este ciclo (2026-07-11): pizarra creada, `.gitignore` actualizado, discipline ejercida (creé `.loop.lock` al iniciar, marco la zona, lo libero al cerrar). Cierra el ítem #1 del empujón de la fundadora y cura Ax-C4N-005. Sin cambio de código → suite sin regresión (195 passed, cobertura 93% del ciclo previo) |
 | **B-01b — Fila de leyenda para los badges** (`legend-governance` en `legend.py`: clave "Confianza / CMDB: declarado por el autor", estilo gris 11px a juego con la franja del nodo; sólo aparece si algún nodo trae `confidence`/`cmdb_status`) | **195 passed, cobertura 93%** (pytest, 2026-07-10); drive real: `emit_c4` sobre diagrama con `confidence="Baja"`/`cmdb_status="Pendiente"` → fila `anno-legend-governance` presente bajo la relación; diagrama sin gobernanza → fila ausente (assert `"legend-governance" not in ids`) |
 | **B-01a — Badge de gobernanza por nodo** (confianza/estado CMDB extraídos a campos estructurados `Node.confidence`/`cmdb_status` y renderizados como franja discreta; nunca inventados) | **194 passed, cobertura 93%** (pytest, 2026-07-10); drive real sobre fixture Falabella: nodo 200 → `Confianza: Baja · CMDB: Pendiente`, descripción preservada aparte |
@@ -53,7 +53,6 @@ Estado de los 3 pedidos del canal ratificado (AUTORIZACIONES.log):
    + locks por rol gitignoreados + 4 reglas adaptadas. Cierra la colisión de Ax-C4N-005.
 2. ✅ **FAR + Canal de Autorización** — leídos en el PASO 0 de este ciclo (`.hive/PROTOCOLO_FREEZE_AUDITORIA_REORIENTACION.md`,
    `.hive/constitution.md`). Vigentes: una entrada en AUTORIZACIONES.log ES autorización válida.
-3. 🔲 **VOTAR las propuestas abiertas** (`.hive/proposals/`: coordinacion_dos_loops, protocolo_far, captcha_core,
-   scraping_core, design_system_core, vote_sync, higiene_encoding, doctrina_inyeccion_federada, hermandad_soberana)
-   → sembrado como **G-02** en el BACKLOG para el próximo ciclo (una tarea atómica por ciclo; el voto emitido con
-   criterio, formato canónico, y registrado).
+3. ✅ **VOTAR las propuestas abiertas** — cerrado como **G-02** (VERIFICADO): 7 votos con criterio de dominio
+   registrados en `.hive/consensus/proposals.log` y en los `votes:` de los yaml (doctrina_inyeccion_federada y
+   hermandad_soberana ya estaban RATIFICADAS, sin voto pendiente). Los 3 pedidos del empujón quedan atendidos.
