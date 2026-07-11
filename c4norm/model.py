@@ -174,6 +174,11 @@ class Node:
     c4_description: str = ""
     c4_technology: str = ""
     external: bool = False
+    # Metadata de gobernanza extraída de la etiqueta del autor (nunca inventada):
+    # confianza en la clasificación y estado del elemento en la CMDB. Vacío si el
+    # autor no lo declaró.
+    confidence: str = ""
+    cmdb_status: str = ""
 
     @property
     def cx(self) -> float:

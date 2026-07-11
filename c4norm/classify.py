@@ -37,22 +37,38 @@ def _env_int(name: str, default: int) -> int:
 _EXTERNAL_HINTS = ("externo", "external", "tercero", "proveedor externo", "sinacofi", "equifax", "servipag")
 # Metadata que la IA mete en la etiqueta y que va a c4Description, no al nombre.
 _META_PREFIXES = ("rol:", "confianza:", "estado cmdb:", "ip:", "host", "restricci")
+# Metadata de gobernanza que se extrae a campos ESTRUCTURADOS (no a la descripción):
+# prefijo (minúsculas) → atributo del nodo. El motor no inventa: solo lee lo escrito.
+_GOVERNANCE_PREFIXES = {"confianza:": "confidence", "estado cmdb:": "cmdb_status"}
 # Pistas de tecnología frecuentes.
 _TECH_HINTS = ("osb", "oracle", "java", "python", "json", "rest", "kafka", "html", "jdbc", "tcp", "19c", "11g", "12c")
 
 
-def _split_label(raw_label: str) -> tuple[str, str, str]:
-    """Devuelve (name, description, technology) desde la etiqueta limpia."""
+def _split_label(raw_label: str) -> tuple[str, str, str, dict[str, str]]:
+    """Devuelve (name, description, technology, governance) desde la etiqueta limpia.
+
+    ``governance`` mapea atributo del nodo → valor para la metadata de gobernanza
+    declarada por el autor (confianza, estado CMDB). Esos campos se extraen a su
+    propia capa en vez de contaminar la descripción; el resto de la metadata
+    (rol, ip, restricciones…) sigue yendo a la descripción.
+    """
     lines = [ln.strip() for ln in raw_label.split("\n") if ln.strip()]
     if not lines:
-        return "", "", ""
+        return "", "", "", {}
 
     name = lines[0]
     rest = lines[1:]
     desc_parts: list[str] = []
     tech = ""
+    governance: dict[str, str] = {}
     for ln in rest:
         low = ln.lower()
+        gov_prefix = next((p for p in _GOVERNANCE_PREFIXES if low.startswith(p)), None)
+        if gov_prefix is not None:
+            value = ln[len(gov_prefix):].strip()
+            if value:
+                governance[_GOVERNANCE_PREFIXES[gov_prefix]] = value
+            continue
         if any(low.startswith(p) for p in _META_PREFIXES):
             desc_parts.append(ln)
             continue
@@ -60,7 +76,7 @@ def _split_label(raw_label: str) -> tuple[str, str, str]:
             tech = ln
             continue
         desc_parts.append(ln)
-    return name, " · ".join(desc_parts), tech
+    return name, " · ".join(desc_parts), tech, governance
 
 
 class C4Classifier(ABC):
@@ -81,10 +97,12 @@ class HeuristicClassifier(C4Classifier):
 
     def _classify_node(self, node: Node, c4_level: int) -> None:
         node.c4_type = self._infer_type(node, c4_level)
-        name, desc, tech = _split_label(node.raw_label)
+        name, desc, tech, governance = _split_label(node.raw_label)
         node.c4_name = name or node.id
         node.c4_description = desc
         node.c4_technology = tech
+        node.confidence = governance.get("confidence", "")
+        node.cmdb_status = governance.get("cmdb_status", "")
         low = node.raw_label.lower()
         node.external = any(h in low for h in _EXTERNAL_HINTS)
 

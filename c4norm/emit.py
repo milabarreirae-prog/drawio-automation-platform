@@ -219,13 +219,32 @@ def _decompose(diagram: Diagram) -> list[tuple[str, Diagram]]:
 # =============================================================================
 
 
+def _governance_badge(node: Node, *, align: str = "center") -> str:
+    """Franja discreta con la gobernanza declarada por el autor (confianza / estado CMDB).
+
+    Devuelve cadena vacía si el autor no declaró ninguna: el motor no inventa badges.
+    El texto es literal (no placeholder) y lo escapa ``_attr`` al serializar.
+    """
+    chips = []
+    if node.confidence:
+        chips.append(f"Confianza: {node.confidence}")
+    if node.cmdb_status:
+        chips.append(f"CMDB: {node.cmdb_status}")
+    if not chips:
+        return ""
+    return (
+        f'<div style="text-align:{align};font-size:9px;color:#666666;margin-top:2px">'
+        f'{" · ".join(chips)}</div>'
+    )
+
+
 def _node_label(node: Node) -> str:
     t = node.c4_type
     if t is C4Type.DEPLOYMENT_NODE:
         label = '<div style="text-align:left">%c4Name%</div><div style="text-align:left">[%c4Type%]</div>'
         if node.c4_description:
             label += '<div style="text-align:left">%c4Description%</div>'
-        return label
+        return label + _governance_badge(node, align="left")
     parts = ["<b>%c4Name%</b>"]
     if t is C4Type.DATABASE:
         parts.append("<div>[Container: %c4Technology%]</div>" if node.c4_technology else "<div>[Database]</div>")
@@ -235,6 +254,7 @@ def _node_label(node: Node) -> str:
         parts.append("<div>[%c4Type%]</div>")
     if node.c4_description:
         parts.append("<br><div>%c4Description%</div>")
+    parts.append(_governance_badge(node))
     return "".join(parts)
 
 

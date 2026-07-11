@@ -13,7 +13,7 @@ actualizado: 2026-07-10
 
 | ID | Tarea | Por qué | Esfuerzo |
 |----|-------|---------|----------|
-| B-01 | **Badges de confianza/estado CMDB** en el diagrama: leyenda `Confianza` / `Estado CMDB` por nodo, alimentada por el modelo lógico | Salto de valor Falabella; no depende de nada externo (palanca no-gateada) | M |
+| B-01b | **Fila de leyenda para los badges** (clave que explica `Confianza` / `Estado CMDB`) en `legend.py`, sólo si algún nodo la trae | Cierra el badge por-nodo (B-01a) con su convención; el dato ya vive estructurado en el modelo | S |
 | B-02 | **Proceso Node persistente para ELK** (hoy arranca un Node por diagrama, ~100-400 ms) | Rendimiento; prerequisito razonable del async | M |
 | B-03 | **API async** (`httpx.AsyncClient` para LLM; endpoints async) | Escalamiento corporativo; validar con load-test, no de fe | L |
 | B-04 | **ETL LeanIX** (GraphQL `falabella.leanix.net` → modelo lógico → pipeline) | Nutre C4 del inventario real; el SSO lo resuelve aranha-robots (patrón WF-002B) — coordinar, no construir login propio | L |
@@ -21,11 +21,12 @@ actualizado: 2026-07-10
 | B-06 | `wiki/REQUERIMIENTOS_v1.md` (RF/RNF trazados) si el escalamiento corporativo lo exige | Completar GENESIS; hoy los docs de diseño cubren la mayor parte | S |
 
 ## 🟡 EN CURSO
-*(vacío — sembrar desde BACKLOG al abrir el próximo ciclo; sugerida: B-01)*
+*(vacío — sembrar desde BACKLOG al abrir el próximo ciclo; sugerida: B-01b)*
 
 ## 🟢 VERIFICADO
 | Tarea | Evidencia |
 |-------|-----------|
+| **B-01a — Badge de gobernanza por nodo** (confianza/estado CMDB extraídos a campos estructurados `Node.confidence`/`cmdb_status` y renderizados como franja discreta; nunca inventados) | **194 passed, cobertura 93%** (pytest, 2026-07-10); drive real sobre fixture Falabella: nodo 200 → `Confianza: Baja · CMDB: Pendiente`, descripción preservada aparte |
 | Fundación del alma (CLINE.md, wiki/NUCLEO_DEL_SISTEMA.md, este board; ROL_ORQUESTA.md trackeado) | Suite completa verde al fundar: **191 passed, cobertura 93%** (pytest, 2026-07-10) |
 
 ## ✅ FINALIZADO (histórico)
