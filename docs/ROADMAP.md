@@ -27,6 +27,10 @@ Normalizar XML crudo de Draw.io (de IA) a **C4 conforme a estándar** para Confl
 - **Badge de gobernanza por nodo** (`Confianza`, `Estado CMDB`): extraídos a campos
   estructurados (`Node.confidence`/`cmdb_status`) y renderizados como franja discreta en
   la etiqueta; ausente si el autor no lo declaró (B-01a, `plans/board.md`).
+- **Fila de leyenda para los badges** (`legend-governance`): clave "Confianza / CMDB:
+  declarado por el autor" (gris 11px, a juego con la franja del nodo), añadida a la
+  leyenda C4 sólo si algún nodo trae `confidence`/`cmdb_status`; nunca inventada
+  (B-01b, `plans/board.md`).
 
 ## ⏳ Pendiente
 
@@ -35,7 +39,6 @@ Ninguno — el roadmap base del prototipo está completo. ✅
 ## 🔭 Futuro (fuera del prototipo)
 
 - Interop **LeanIX** (ETL GraphQL → modelo lógico → este pipeline).
-- Fila de leyenda que explique los badges de `Confianza`/`Estado CMDB` (B-01b, `plans/board.md`).
 - **Rendimiento avanzado** (requiere load-testing para validar):
   - API totalmente **async** (`httpx.AsyncClient`) para que las llamadas LLM no
     consuman un hilo del threadpool durante la espera de red.
