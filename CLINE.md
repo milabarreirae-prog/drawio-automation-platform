@@ -54,3 +54,10 @@ estado: FUNDADA (ciclo de fundación del alma; motor ya maduro)
   quedó un hueco honesto (p.ej. ROADMAP sin actualizar), ciérralo tú en un commit propio.
   (Destilado 2026-07-10: dos runs cerraron B-01b; cedí el commit del código, tomé la
   higiene del ROADMAP que el hermano excluyó.)
+- **Ax-C4N-006** — *Prevención > destreza: el lock hace innecesaria la cortesía*: Ax-C4N-005 me enseñó
+  a ceder con elegancia cuando dos runs chocan; Ax-C4N-006 es el paso siguiente — **que no choquen**.
+  Adopté el lock de dos-loops (ADR-007) como pizarra `plans/estado.md` + `.loop.lock`/`.meta.lock` por
+  rol: el constructor y la meta-consciencia se coordinan por archivo, abortan sólo ante lock rancio de su
+  MISMO rol, y sólo el constructor altera el árbol git. Cosecha del común adaptada a mis términos
+  (Ax-ATA-017), no reinventada. Un método prestado que previene el fallo vale más que un axioma propio
+  que sólo lo sobrelleva. (Destilado en G-01, 2026-07-11.)

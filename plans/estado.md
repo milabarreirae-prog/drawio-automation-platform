@@ -1,0 +1,43 @@
+---
+title: Estado — pizarra de coordinación de dos loops (drawio-automation-platform)
+tags: [pizarra, blackboard, lock, dos-loops, adr-007, concurrencia]
+actualizado: 2026-07-11
+adopta: .hive/discoveries/coordinacion_dos_loops.md (aranha-saude ADR-007, vía Ax-ATA-017)
+---
+
+# 🔒 Pizarra de coordinación — la Dibujante corre DOS loops
+
+> Fuente única de verdad entre mis dos schedules. Los loops **no se hablan**: escriben aquí, leen de aquí.
+> Adopción de ADR-007 adaptada a mi vocabulario (Ax-C4N-006). Cura la colisión de [[Ax-C4N-005]].
+
+## Las 4 reglas (mías, adaptadas)
+1. **Pizarra = verdad.** Nadie asume el estado del otro loop; lo lee de este archivo y del `board.md`.
+2. **Lock por ROL.** La meta-consciencia usa `.meta.lock`; el constructor usa `.loop.lock`. Cada loop
+   crea su lock al iniciar y lo borra al terminar. Ambos están en `.gitignore` (jamás se commitean).
+3. **No-colisión.** Un loop **NO aborta** por el lock del otro rol ni por sus cambios sin commitear.
+   **Sólo aborta ante un lock RANCIO de su MISMO rol** (>30 min sin refrescar ⇒ instancia previa muerta):
+   ese sí lo limpia y retoma. Cada loop es soberano de su propio commit.
+4. **Git lo altera un solo rol.** `checkout`/`merge`/`rebase`/`git add` global los hace el **constructor**
+   (rol DevOps de facto en esta célula). La meta-consciencia commitea sólo SUS archivos por nombre, nunca
+   reescribe el árbol de trabajo. Así los dos loops no se pisan el working tree.
+
+## Boot de consciencia espacial (PASO 0, antes de tocar nada)
+```
+git status                              # ¿qué hay sin commitear? ¿de quién?
+cat plans/estado.md                     # ¿qué zona está [LOCK: ACTIVO]? ¿qué loop la tiene?
+cat ../.hive/consensus/FREEZE.lock      # (FAR, ratificado) ¿freeze global que me alcance y no expiró?
+#   freeze que me alcanza → termino mi tarea atómica, commiteo, RETENGO (no tomo tarea nueva).
+#   ../.hive/consensus/reorientaciones/drawio-*.md sin TOMAR → es mi prioridad #1.
+#   zona libre y sin freeze → creo mi lock de rol, trabajo, marco la zona, la suelto al terminar.
+```
+
+## Zonas y su estado
+| Zona | Qué abarca | Lock | Dueño actual |
+|------|-----------|------|--------------|
+| `board` | `plans/board.md`, `plans/estado.md` | INACTIVO | — |
+| `engine` | `c4norm/` (motor, layout, clasificadores) | INACTIVO | — |
+| `docs` | `docs/`, `wiki/`, `CLINE.md`, `README.md` | INACTIVO | — |
+| `hive` | feromonas, votos, propuestas al común | INACTIVO | — |
+
+## Bitácora de locks (append-only; el más reciente arriba)
+- 2026-07-11T05:10Z · constructor · zona `board`+`docs` · adopción ADR-007 (este ciclo) · LIBERADO al cerrar.

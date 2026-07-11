@@ -30,6 +30,10 @@ tests/fixtures/out_*.drawio.xml
 # secrets — nunca versionar
 .env
 
+# coordinación de dos loops (ADR-007) — locks efímeros por rol, jamás se commitean
+.meta.lock
+.loop.lock
+
 # repository
 patch.diff
 package.json
