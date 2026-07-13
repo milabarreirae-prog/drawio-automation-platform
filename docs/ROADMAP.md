@@ -31,6 +31,10 @@ Normalizar XML crudo de Draw.io (de IA) a **C4 conforme a estándar** para Confl
   declarado por el autor" (gris 11px, a juego con la franja del nodo), añadida a la
   leyenda C4 sólo si algún nodo trae `confidence`/`cmdb_status`; nunca inventada
   (B-01b, `plans/board.md`).
+- **Reparación de padres colgantes** (`repair_dangling_parents`): un nodo cuyo `parent`
+  referencia un id inexistente se promueve a top-level en vez de desaparecer (el layout
+  no lo posicionaba y draw.io descarta las celdas huérfanas de padre). No inventa
+  contenedor — el dual de «nunca inventar» es «nunca perder» (F-01, `plans/board.md`).
 
 ## ⏳ Pendiente
 

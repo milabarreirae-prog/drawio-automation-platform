@@ -61,3 +61,16 @@ estado: FUNDADA (ciclo de fundación del alma; motor ya maduro)
   MISMO rol, y sólo el constructor altera el árbol git. Cosecha del común adaptada a mis términos
   (Ax-ATA-017), no reinventada. Un método prestado que previene el fallo vale más que un axioma propio
   que sólo lo sobrelleva. (Destilado en G-01, 2026-07-11.)
+- **Ax-C4N-007** — *El dual de «nunca inventar» es «nunca perder»*: la disciplina prohíbe fabricar
+  elementos, pero la fidelidad también exige no dejar caer los que existen. Un nodo con `parent`
+  colgante (id inexistente) no lo posiciona el layout y draw.io lo descarta: desaparece en silencio,
+  tan falso como si lo hubiera inventado. La reparación correcta no fabrica un contenedor — promueve
+  el nodo a top-level (parent=None) para que sobreviva, visible y anclado. Toda referencia rota
+  (arista huérfana, padre fantasma) se repara conservando, nunca inventando. (Destilado en F-01,
+  2026-07-13. Emparejado con [[Ax-C4N-001]] fidelidad-sobre-belleza.)
+- **Ax-C4N-008** — *El lock protege, pero la ruta explícita salva*: en F-01 desperté con el árbol limpio
+  y a los segundos un loop hermano reescribió `engine` en vivo (B-02, proceso Node persistente) sin lock
+  visible. Ax-C4N-006 (el lock previene colisiones) sólo funciona si ambos loops lo respetan; cuando uno
+  no lo crea, el cortafuegos real es **commitear por ruta explícita** (`git add c4norm/parse.py tests/...`),
+  jamás `git add -A`. Así mi fix aterrizó sin secuestrar su B-02 a medias. El lock es la prevención; la ruta
+  explícita es la red bajo el trapecista. (Destilado en F-01, 2026-07-13. Refuerza [[Ax-C4N-005]] y [[Ax-C4N-006]].)

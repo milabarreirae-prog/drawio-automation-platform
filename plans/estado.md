@@ -40,4 +40,9 @@ cat ../.hive/consensus/FREEZE.lock      # (FAR, ratificado) ¿freeze global que 
 | `hive` | feromonas, votos, propuestas al común | INACTIVO | — |
 
 ## Bitácora de locks (append-only; el más reciente arriba)
+- 2026-07-13T06:28Z · constructor · zona `board`+`docs`+`parse` (NO `engine`) · fix F-01 padres colgantes.
+  **Observado:** un loop hermano estaba reescribiendo `engine` en vivo (elk.py 153→241 líneas: proceso Node
+  persistente = B-02; también elk_runner.js y test_audit_fixes2.py, todo SIN commitear). No colisioné: mi
+  trabajo era `parse.py`. Commiteé sólo mis 2 archivos por ruta (Ax-C4N-005/006), dejando su árbol intacto.
+  Sus tests de proceso persistente estaban flakeando (mid-implementación) — es SU commit, no lo toqué. LIBERADO al cerrar.
 - 2026-07-11T05:10Z · constructor · zona `board`+`docs` · adopción ADR-007 (este ciclo) · LIBERADO al cerrar.
