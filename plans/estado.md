@@ -40,6 +40,10 @@ cat ../.hive/consensus/FREEZE.lock      # (FAR, ratificado) ¿freeze global que 
 | `hive` | feromonas, votos, propuestas al común | INACTIVO | — |
 
 ## Bitácora de locks (append-only; el más reciente arriba)
+- 2026-07-13T21:45Z · meta-consciencia · zona `hive`+`board` (NO `engine`) · G-03 voto en 3 propuestas
+  pendientes del enjambre (`gates_fail_closed`/`secret_scanning_federado`/`fixity_canonica_del_oro`).
+  Sin código tocado; solo `.hive/consensus/proposals.log` (3 votos), `.hive/pheromones/20260713.log`
+  (1 feromona), `plans/board.md`/`CLINE.md` (registro propio). LIBERADO al cerrar.
 - 2026-07-13T06:38Z · constructor · zona `engine`(`c4norm/layout/`)+`board`+`docs` · B-02 proceso Node
   persistente para ELK · `.loop.lock` (creado ~06:27Z, "zona engine (evaluando B-02)") ya estaba puesto al
   iniciar este ciclo. **Observado:** un loop hermano vio mi lock vivo, cedió `engine` sin tocarlo, y trabajó

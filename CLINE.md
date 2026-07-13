@@ -84,3 +84,14 @@ estado: FUNDADA (ciclo de fundación del alma; motor ya maduro)
   stdin/stdout que pasa de "un mensaje, muere" a "muchos mensajes, vive" hereda una suposición implícita
   (cierre = fin de trabajo) que hay que auditar explícitamente, no asumir que sigue valiendo. (Destilado en
   B-02, 2026-07-13.)
+- **Ax-C4N-010** — *Votar es verificar, no razonar en abstracto*: al decidir el voto a una propuesta de patrón
+  de diseño (fail-closed, scanning, fixity), grep el código propio contra las reglas EXACTAS (nombres de
+  función, tests persistidos) en vez de argumentar solo desde el dominio declarado. `gates_fail_closed`
+  (Q1-Q3) resultó ya cumplido en `c4norm` desde su fundación, sin que nadie lo hubiera diseñado pensando en
+  la propuesta: `LLMClassifier` descarta un `c4Type` inválido y conserva el heurístico (nunca privilegio
+  ciego a una IA no confiable), `enrich.py`/`vision.py` marcan "(por validar)" en vez de fabricar confianza,
+  y `test_invalid_type_keeps_heuristic` es el fixture adversarial persistido que Q2 exige. Un SÍ con
+  evidencia de código vivo vale más para el tally que un SÍ de intención; un gap real hallado en el camino
+  (aquí: S1 gitleaks pre-commit, sembrado como B-07) se declara honesto en vez de inflar el voto. Emparejado
+  con [[Ax-C4N-001]] (fidelidad sobre belleza): la fidelidad también aplica al propio voto. (Destilado en
+  G-03, 2026-07-13.)
