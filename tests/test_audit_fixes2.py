@@ -60,8 +60,8 @@ def test_absolute_positions_self_parent_no_crash() -> None:
 # =============================================================================
 
 def test_elk_timeout_raises_runtime_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    """subprocess.TimeoutExpired debe convertirse en RuntimeError legible."""
-    import subprocess
+    """Si el proceso Node persistente no responde a tiempo: RuntimeError legible."""
+    import queue
 
     from c4norm.layout.elk import ElkLayout
 
@@ -69,13 +69,59 @@ def test_elk_timeout_raises_runtime_error(monkeypatch: pytest.MonkeyPatch) -> No
     if not elk.available():
         pytest.skip("ELK no disponible en este entorno")
 
-    def fake_run(*a, **kw):
-        raise subprocess.TimeoutExpired(cmd="node", timeout=60)
+    def fake_get(self, timeout=60.0):
+        raise queue.Empty()
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr("c4norm.layout.elk.queue.Queue.get", fake_get)
     d = Diagram(nodes=[_node("a")])
     with pytest.raises(RuntimeError, match="timeout"):
         elk.run(d)
+
+
+def test_elk_process_reused_across_runs() -> None:
+    """Dos layouts consecutivos reutilizan el mismo proceso Node (B-02)."""
+    from c4norm.layout import elk as elk_module
+    from c4norm.layout.elk import ElkLayout
+
+    elk = ElkLayout()
+    if not elk.available():
+        pytest.skip("ELK no disponible en este entorno")
+
+    elk_module._process = None  # arranca de cero para este test
+    d1 = Diagram(nodes=[_node("a", x=0, y=0), _node("b", x=200, y=0)])
+    d2 = Diagram(nodes=[_node("c", x=0, y=0), _node("d", x=200, y=0)])
+    elk.run(d1)
+    proc_after_first = elk_module._process._proc
+    assert proc_after_first is not None
+    elk.run(d2)
+    assert elk_module._process._proc is proc_after_first, "debió reutilizar el mismo proceso Node"
+    assert d2.nodes[0].x is not None
+
+
+def test_elk_bad_graph_does_not_kill_persistent_process() -> None:
+    """Un grafo que ELK rechaza no debe matar el proceso persistente (sobrevive al siguiente)."""
+    from c4norm.layout import elk as elk_module
+    from c4norm.layout.elk import ElkLayout
+
+    elk = ElkLayout()
+    if not elk.available():
+        pytest.skip("ELK no disponible en este entorno")
+
+    elk_module._process = None
+    process = elk_module._get_process(elk.node_bin)
+    bad_graph = {
+        "id": "root",
+        "children": [],
+        "edges": [{"id": "e1", "sources": ["falta"], "targets": ["tambien-falta"]}],
+    }
+    result = process.send(bad_graph)
+    assert "error" in result, "un grafo inválido debe volver como {error: ...}, no matar el proceso"
+
+    proc_after_error = process._proc
+    assert proc_after_error is not None
+    d = Diagram(nodes=[_node("a", x=0, y=0)])
+    elk.run(d)  # debe seguir funcionando en el mismo proceso
+    assert process._proc is proc_after_error
 
 
 # =============================================================================

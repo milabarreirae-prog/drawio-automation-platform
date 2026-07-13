@@ -1,18 +1,24 @@
 """
 Motor de layout ELK real (Eclipse Layout Kernel) vía ``elkjs`` sobre Node.
 
-Construye un grafo ELK jerárquico (boundaries = nodos compuestos), invoca el
-runner Node (``elk_runner.js``), y aplica de vuelta posiciones + rutas
-ortogonales de las aristas (que esquivan las cajas). Si Node/elkjs no están
-disponibles, ``available()`` devuelve False y el orquestador usa el fallback.
+Construye un grafo ELK jerárquico (boundaries = nodos compuestos), lo envía al
+runner Node persistente (``elk_runner.js``, un proceso reutilizado entre
+diagramas — ver ``_PersistentElkProcess``), y aplica de vuelta posiciones +
+rutas ortogonales de las aristas (que esquivan las cajas). Si Node/elkjs no
+están disponibles, ``available()`` devuelve False y el orquestador usa el
+fallback.
 """
 
 from __future__ import annotations
 
+import atexit
+import contextlib
 import json
 import os
+import queue
 import shutil
 import subprocess
+import threading
 from pathlib import Path
 
 from c4norm.model import C4Type, Diagram, Node
@@ -54,6 +60,96 @@ def find_node_bin() -> str | None:
             for exe in base.glob("OpenJS.NodeJS*/**/node.exe"):
                 return str(exe)
     return None
+
+
+class _PersistentElkProcess:
+    """Proceso Node persistente que corre ``elk_runner.js`` en modo servidor.
+
+    Se reutiliza entre diagramas (un ``python -m c4norm`` con multi-hoja, o
+    varios requests de la API en el mismo proceso Python): evita pagar el
+    arranque de Node en cada layout. Serializado con un lock — un solo grafo
+    en vuelo a la vez, igual que antes (cada llamada era un proceso Node
+    aparte, ahora es un turno del mismo proceso).
+    """
+
+    def __init__(self, node_bin: str) -> None:
+        self._node_bin = node_bin
+        self._proc: subprocess.Popen | None = None
+        self._out_q: queue.Queue[bytes] = queue.Queue()
+        self._lock = threading.Lock()
+
+    def _start(self) -> None:
+        # Cola nueva por arranque: el hilo lector del proceso anterior (si
+        # sigue drenando su EOF tras un kill()) no debe escribir en la cola
+        # que ya está sirviendo al proceso nuevo.
+        self._out_q = queue.Queue()
+        self._proc = subprocess.Popen(
+            [self._node_bin, str(_RUNNER)],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        threading.Thread(target=self._pump_stdout, args=(self._proc, self._out_q), daemon=True).start()
+
+    @staticmethod
+    def _pump_stdout(proc: subprocess.Popen, out_q: queue.Queue[bytes]) -> None:
+        assert proc.stdout is not None
+        for line in proc.stdout:
+            out_q.put(line)
+        out_q.put(b"")  # sentinela EOF: el proceso murió
+
+    def _kill(self) -> None:
+        if self._proc is not None:
+            with contextlib.suppress(OSError):
+                self._proc.kill()
+            self._proc = None
+
+    def send(self, graph: dict, timeout: float = 60.0) -> dict:
+        with self._lock:
+            if self._proc is None or self._proc.poll() is not None:
+                self._start()
+            proc = self._proc
+            assert proc is not None and proc.stdin is not None
+            try:
+                proc.stdin.write(json.dumps(graph).encode("utf-8") + b"\n")
+                proc.stdin.flush()
+            except (BrokenPipeError, OSError) as exc:
+                self._kill()
+                raise RuntimeError(f"ELK (persistente): pipe roto al escribir: {exc}") from exc
+
+            try:
+                line = self._out_q.get(timeout=timeout)
+            except queue.Empty:
+                self._kill()
+                raise RuntimeError("ELK (persistente) timeout (60 s): proceso Node tardó demasiado")
+            if not line:
+                stderr = b""
+                if proc.stderr is not None:
+                    stderr = proc.stderr.read() or b""
+                self._kill()
+                raise RuntimeError(f"ELK (persistente) murió: {stderr.decode('utf-8', 'replace')[:500]}")
+            try:
+                return json.loads(line)
+            except json.JSONDecodeError as exc:
+                self._kill()
+                raise RuntimeError(f"ELK (persistente) respuesta inválida: {line[:200]!r}") from exc
+
+    def shutdown(self) -> None:
+        with self._lock:
+            self._kill()
+
+
+_process: _PersistentElkProcess | None = None
+_process_lock = threading.Lock()
+
+
+def _get_process(node_bin: str) -> _PersistentElkProcess:
+    global _process
+    with _process_lock:
+        if _process is None:
+            _process = _PersistentElkProcess(node_bin)
+            atexit.register(_process.shutdown)
+        return _process
 
 
 class ElkLayout:
@@ -104,19 +200,11 @@ class ElkLayout:
         if not self.available():
             raise RuntimeError("ELK no disponible: falta Node o elkjs")
 
+        assert self.node_bin is not None
         graph = self._build_graph(diagram)
-        try:
-            proc = subprocess.run(
-                [self.node_bin, str(_RUNNER)],
-                input=json.dumps(graph).encode("utf-8"),
-                capture_output=True,
-                timeout=60,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise RuntimeError("ELK timeout (60 s): proceso Node tardó demasiado") from exc
-        if proc.returncode != 0:
-            raise RuntimeError(f"ELK falló: {proc.stderr.decode('utf-8', 'replace')[:500]}")
-        result = json.loads(proc.stdout.decode("utf-8"))
+        result = _get_process(self.node_bin).send(graph, timeout=60.0)
+        if "error" in result:
+            raise RuntimeError(f"ELK falló: {str(result['error'])[:500]}")
 
         nodes_by_id = {n.id: n for n in diagram.nodes}
         edges_by_id = {e.id: e for e in diagram.edges}
