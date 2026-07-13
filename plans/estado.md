@@ -1,7 +1,7 @@
 ---
 title: Estado — pizarra de coordinación de dos loops (drawio-automation-platform)
 tags: [pizarra, blackboard, lock, dos-loops, adr-007, concurrencia]
-actualizado: 2026-07-11
+actualizado: 2026-07-13
 adopta: .hive/discoveries/coordinacion_dos_loops.md (aranha-saude ADR-007, vía Ax-ATA-017)
 ---
 
@@ -40,6 +40,13 @@ cat ../.hive/consensus/FREEZE.lock      # (FAR, ratificado) ¿freeze global que 
 | `hive` | feromonas, votos, propuestas al común | INACTIVO | — |
 
 ## Bitácora de locks (append-only; el más reciente arriba)
+- 2026-07-13T06:38Z · constructor · zona `engine`(`c4norm/layout/`)+`board`+`docs` · B-02 proceso Node
+  persistente para ELK · `.loop.lock` (creado ~06:27Z, "zona engine (evaluando B-02)") ya estaba puesto al
+  iniciar este ciclo. **Observado:** un loop hermano vio mi lock vivo, cedió `engine` sin tocarlo, y trabajó
+  `parse.py` en paralelo (F-01, commit `ee89be2`) — coordinación ADR-007 funcionando en la práctica, primera
+  vez que se prueba bajo colisión real (no simulada). Verifiqué `git diff --stat` antes de commitear: solo
+  mis 3 archivos (`c4norm/layout/elk.py`, `elk_runner.js`, `tests/test_audit_fixes2.py`); no toqué `parse.py`
+  ni `test_repair_parents.py` del hermano. LIBERADO (`.loop.lock` borrado) al cerrar.
 - 2026-07-13T06:28Z · constructor · zona `board`+`docs`+`parse` (NO `engine`) · fix F-01 padres colgantes.
   **Observado:** un loop hermano estaba reescribiendo `engine` en vivo (elk.py 153→241 líneas: proceso Node
   persistente = B-02; también elk_runner.js y test_audit_fixes2.py, todo SIN commitear). No colisioné: mi

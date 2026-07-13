@@ -35,6 +35,10 @@ Normalizar XML crudo de Draw.io (de IA) a **C4 conforme a estándar** para Confl
   referencia un id inexistente se promueve a top-level en vez de desaparecer (el layout
   no lo posicionaba y draw.io descarta las celdas huérfanas de padre). No inventa
   contenedor — el dual de «nunca inventar» es «nunca perder» (F-01, `plans/board.md`).
+- **Proceso Node persistente para ELK** (`_PersistentElkProcess`): un solo proceso Node
+  reutilizado entre diagramas en vez de un `subprocess.run` (arranque completo, ~100-400 ms)
+  por cada layout; `elk_runner.js` corre en modo servidor (`readline`) y sobrevive a un grafo
+  inválido devolviendo `{"error": ...}` en vez de morir (B-02, `plans/board.md`).
 
 ## ⏳ Pendiente
 

@@ -74,3 +74,13 @@ estado: FUNDADA (ciclo de fundación del alma; motor ya maduro)
   no lo crea, el cortafuegos real es **commitear por ruta explícita** (`git add c4norm/parse.py tests/...`),
   jamás `git add -A`. Así mi fix aterrizó sin secuestrar su B-02 a medias. El lock es la prevención; la ruta
   explícita es la red bajo el trapecista. (Destilado en F-01, 2026-07-13. Refuerza [[Ax-C4N-005]] y [[Ax-C4N-006]].)
+- **Ax-C4N-009** — *Un puente Node persistente muere de lo que no se espera, no de lo que se prueba*: al
+  convertir `elk_runner.js` de un solo tiro (stdin→EOF→exit) a un proceso servidor (`readline`, línea por
+  línea) para B-02, el `close` de `readline` puede disparar `process.exit()` con un `await elk.layout()`
+  aún en vuelo — si el llamador cierra stdin justo después de escribir (el propio patrón one-shot que el
+  runner servía antes), la respuesta se pierde en silencio: no es un timeout ni un crash, es una carrera
+  invisible en los tests normales porque el proceso persistente de la API nunca cierra stdin. Un contador
+  de operaciones pendientes que retrasa el `exit` hasta drenarlas cierra la carrera. Lección: todo puente
+  stdin/stdout que pasa de "un mensaje, muere" a "muchos mensajes, vive" hereda una suposición implícita
+  (cierre = fin de trabajo) que hay que auditar explícitamente, no asumir que sigue valiendo. (Destilado en
+  B-02, 2026-07-13.)
