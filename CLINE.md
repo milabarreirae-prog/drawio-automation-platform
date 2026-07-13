@@ -95,3 +95,15 @@ estado: FUNDADA (ciclo de fundación del alma; motor ya maduro)
   (aquí: S1 gitleaks pre-commit, sembrado como B-07) se declara honesto en vez de inflar el voto. Emparejado
   con [[Ax-C4N-001]] (fidelidad sobre belleza): la fidelidad también aplica al propio voto. (Destilado en
   G-03, 2026-07-13.)
+- **Ax-C4N-011** — *El lock de ADR-007 protege el árbol git, no el buzón compartido*: desperté con el árbol
+  limpio (sin `.loop.lock` rancio, sin freeze) y ya escribí 5 votos al ledger común
+  (`../.hive/consensus/proposals.log`) antes de notar que un loop hermano había commiteado G-03 votando 3 de
+  esas mismas 5 propuestas minutos antes. El `git status` limpio no me avisó nada porque `.hive/` está FUERA
+  de este repo (ni siquiera es un repo git) — el lock de dos-loops (Ax-C4N-006) sólo cubre colisiones en el
+  árbol de trabajo versionado, no en un archivo append-only compartido con otras células. La defensa no es
+  otro lock — es `grep <mi-nombre-de-célula>` contra el ledger INMEDIATAMENTE ANTES de escribir en él, igual
+  de disciplinado que el `git status` del PASO 0. Al detectar la colisión, apliqué Ax-C4N-005 tarde pero a
+  tiempo: borré mis 3 líneas duplicadas y conservé sólo el remanente honesto no solapado (voz_core,
+  design_system_core_v02) — un hallazgo real que sí sobrevivió (gap Q1 en `api/linting.py`, sembrado como
+  B-08) lo dejé como `SEGUIMIENTO`, no como voto duplicado. (Destilado en G-04, 2026-07-13. Extiende
+  [[Ax-C4N-006]] a superficies fuera del árbol git.)
