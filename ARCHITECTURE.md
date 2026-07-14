@@ -68,6 +68,41 @@ restos (`src/`, `Dockerfile` raíz, pruebas Bats, workflows de drawio-desktop,
 `THIRD_PARTY_LICENSES`, metadata `.github/`) se **eliminaron**; sólo se conservan
 `LICENSE` y `NOTICE`. El repositorio ya no tiene automatización de GitHub.
 
+## Reutilización entre células (Nivel A)
+
+`c4norm` no es (hoy) un candidato Nivel B del enjambre — no expone una capacidad
+pesada/centralizable como servicio (patrón `voz_core`); es un motor sin estado,
+consumido por su propia CLI/API. Sí ofrece dos patrones **Nivel A** (método puro,
+sin acoplamiento de dominio) que otra célula puede **adaptar** cuando enfrente el
+mismo problema — se nombran aquí como referencia citable, no como módulo a extraer
+hoy a `.hive/shared_services/` (Rule of Three: ninguno de los dos tiene todavía una
+segunda implementación independiente conocida en el enjambre; extraer antes de la
+3ª repetición real suele producir la abstracción equivocada):
+
+- **Clasificador con IA fail-closed** (`c4norm/classify.py::LLMClassifier`): un
+  `c4Type` inválido devuelto por el LLM se descarta y se conserva el heurístico —
+  la IA nunca gana a ciegas sobre el determinismo. Probado con fixture adversarial
+  persistida (`tests/test_llm_classifier.py::test_invalid_type_keeps_heuristic`),
+  no solo narrado. Ya citado como evidencia de código vivo al votar SÍ en
+  `gates_fail_closed` (`.hive/consensus/proposals.log`, 2026-07-13) y destilado en
+  `.hive/pheromones/20260713.log` como patrón "method-only" reutilizable por
+  cualquier célula que enchufe una IA no confiable sobre una decisión determinista.
+- **Proceso externo persistente vía stdin/stdout** (`c4norm/layout/elk.py::_PersistentElkProcess`):
+  un único proceso Node se reutiliza entre invocaciones (en vez de pagar un
+  `subprocess.run` completo por diagrama), con lock de turno, sentinela de EOF y
+  relanzado si murió. Es una instancia del patrón "persistent worker process" que
+  usan herramientas de build como Bazel/Buck2/Please para amortizar el arranque de
+  intérpretes pesados (JVM, Node) — aplicable a cualquier célula que invoque
+  repetidamente un binario/intérprete externo desde Python.
+
+**Postura ante `reutilizacion_artefactos_arquetipos`**
+(`.hive/shared_services/proposals/prop_reutilizacion_artefactos_arquetipos.yaml`):
+c4norm adopta R1 (los 3 niveles) y R3 (trazabilidad `VENDORED_FROM` si algún día
+vendorea código de una hermana) para código nuevo; no aporta candidatos a R2 hoy
+(ninguno de los dos patrones de arriba cruzó su propia 3ª repetición todavía) — se
+dejan nombrados como oferta Nivel A para cuando una hermana los necesite y decida
+adaptarlos, no copiarlos a ciegas.
+
 ## Validation
 
 Pruebas Python (78 tests): `test_c4norm.py` (pipeline completo, ELK + fallback),
