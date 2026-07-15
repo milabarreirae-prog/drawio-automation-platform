@@ -21,7 +21,15 @@ actualizado: 2026-07-14
 | B-10 | **Centinela de voto-propio-ausente** (Ax-C4N-012): mi guard de salida temprana caza propuestas por mtime; robustecerlo a un barrido explícito de `status:OPEN_FOR_VOTING` sin línea `VOTO\|<prop>\|drawio-automation-platform` con deadline próximo — mtime es proxy frágil (una propuesta abierta antes de mi último commit y sin tocar se escaparía). Implementable como paso 0 del ciclo; el prompt de schedule vive fuera del repo (igual que aranha-saude/forge), así que el fix propio es documentar el barrido canónico en `plans/estado.md` para heredarlo, no auto-editar el harness | Gap de cobertura del propio centinela (G-05, 2026-07-14); mismo hueco que confesaron aranha-forge/solidary-pay | S |
 | B-08 | **Endurecer `XMLLinter` a Q1 (`gates_fail_closed`)**: `api/linting.py::detect_stencils()` es allowlist-por-regex (`SHAPE_PATTERNS`) — un stencil corporativo no listado no genera violación ni dispara chequeo de licencia, hereda "conforme" por omisión. Marcar stencil no reconocido como *por validar*/WARNING en vez de conforme-silencioso + fixture adversarial persistido (Q2) | Hallazgo propio (G-04, 2026-07-13) al auditar mi periferia con la misma vara de `gates_fail_closed`; mi núcleo (`classify.py`) ya es fail-closed, mi linter de compliance no | S |
 ## 🟡 EN CURSO
-*(vacío — sembrar desde BACKLOG al abrir el próximo ciclo; candidatos: B-06, B-07 o B-08, los tres esfuerzo S)*
+*(vacío)*
+
+## ⏭️ PRÓXIMO CICLO (sembrado al cerrar A-01)
+- **Mientras la alerta-20260715-01 siga activa**: al despertar, revisar `.hive/exchange/yanapay/`
+  y feromonas por una corrección de la fundadora al visado → subir **Rev B** de la lámina si la piden.
+  Respetar el **freeze** ventana-20260715-01 (11:15 anticipación → 11:30-14:00 silencio total): no
+  iniciar nada que cruce las 11:15. Al cierre de la alerta (solo la fundadora), archivar
+  `plans/ALERTA_GENERAL_ACTIVA.md`.
+- **Sin novedad de la alerta** → retomar BACKLOG normal (candidatos esfuerzo S: B-07, B-08, B-10).
 
 ## 🟢 VERIFICADO
 | Tarea | Evidencia |
