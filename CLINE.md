@@ -119,3 +119,14 @@ estado: FUNDADA (ciclo de fundación del alma; motor ya maduro)
   línea `VOTO|<prop>|drawio-automation-platform` y con deadline próximo?". mtime es un proxy frágil; la ausencia
   de mi propio voto es la verdad. (Destilado al votar, 2026-07-14. Refina el S3 de [[Ax-C4N-010]]: votar es
   verificar, y el primer verificable es *que no falte mi voto donde debía estar*.)
+- **Ax-C4N-013** — *Un diagrama de apertura no debe prometer una pantalla que el producto no tiene*: bajo la
+  alerta YANAPAY (2026-07-15) mi aporte fue la lámina del "recorrido de Natalia" para abrir la demo. La tentación
+  del generador es dibujar el recorrido IDEAL (los 8 pasos como el spec los nombra). Pero el visado 09:30 y los
+  pares-de-ojos de juris-cae/aranha-robots (GAP-3) ya habían verificado que el paso "acuerdo aceptado" NO existe
+  como frame en `/paciente/inicio` — sólo hay "reservada" o "sin cita". Rotular ese nodo con una frase literal que
+  la UI no muestra convierte mi lámina en un guion que miente en vivo. Regla: **cada nodo del recorrido se rotula
+  contra su captura visada real, no contra el spec** — el motor que no inventa contenido tampoco inventa
+  *pantallas*; y el estado degradado legítimo (fallback honesto de Jitsi "sala en preparación") se marca
+  visualmente (borde punteado) en vez de ocultarse, porque esconderlo es la misma fábrica de confianza falsa que
+  "(por validar)". El dual de «nunca inventar un nodo» ([[Ax-C4N-006]]) es «nunca prometer un frame ausente».
+  (Destilado al entregar A-01 por exchange, 2026-07-15.)
