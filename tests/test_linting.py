@@ -10,6 +10,7 @@ from api.config import Settings
 from api.linting import (
     XMLLinter,
     detect_stencils,
+    detect_unrecognized_stencils,
     extract_colors,
     requires_archimate_license,
     validate_colors,
@@ -117,6 +118,25 @@ class TestStencilValidation:
         assert any(v.stencil_id == "aws4" for v in violations)
 
 
+class TestUnrecognizedStencilDetection:
+    """Fail-closed contra el allowlist-por-omisión (B-08 / Ax-C4N-016)."""
+
+    def test_unlisted_stencil_is_unrecognized(self, valid_xml_with_unlisted_stencil: str) -> None:
+        root = validate_xml_wellformed(valid_xml_with_unlisted_stencil)
+        unrecognized = detect_unrecognized_stencils(root)
+        assert "sap.hana.node" in unrecognized
+
+    def test_known_family_not_flagged_unrecognized(self, valid_xml_with_aws: str) -> None:
+        root = validate_xml_wellformed(valid_xml_with_aws)
+        # aws4.instance mapea a una familia conocida → NO es "por validar".
+        assert detect_unrecognized_stencils(root) == set()
+
+    def test_basic_xml_without_shape_token_is_clean(self, valid_xml_basic: str) -> None:
+        root = validate_xml_wellformed(valid_xml_basic)
+        # style sin `shape=` (rounded=1;...) no dispara falsos "por validar".
+        assert detect_unrecognized_stencils(root) == set()
+
+
 class TestArchiMateLicenseCheck:
     """Tests for ArchiMate license requirement detection."""
 
@@ -192,3 +212,25 @@ class TestXMLLinterFullValidation:
         result = linter.full_validation(invalid_xml)
         assert result.level == ComplianceLevel.BLOCKED
         assert result.xml_well_formed is False
+
+    def test_unlisted_stencil_is_por_validar_not_silent_compliant(
+        self, valid_xml_with_unlisted_stencil: str
+    ) -> None:
+        """B-08 (Ax-C4N-016): un stencil corporativo no listado NO hereda
+        'conforme' en silencio — se marca 'por validar' (WARNING). El motor no
+        lo declara violación (no inventa lo que no puede probar)."""
+        settings = Settings(
+            # Config permisiva a propósito: el filtro allowlist de stencils
+            # NO cubre este shape, así que sin el endurecimiento pasaría COMPLIANT.
+            ALLOWED_STENCILS="aws4,gcp2,azure,archimate3,c4,cisco,oci",
+            ALLOWED_COLORS="4A90D9,333333",
+        )
+        linter = XMLLinter(settings)
+        result = linter.full_validation(valid_xml_with_unlisted_stencil)
+
+        # Fail-closed: NO conforme mudo.
+        assert result.level == ComplianceLevel.WARNING
+        assert "sap.hana.node" in result.unrecognized_stencils
+        # El motor no inventa una violación probada para lo que no reconoce.
+        assert result.stencil_violations == []
+        assert any("por validar" in e for e in result.errors)

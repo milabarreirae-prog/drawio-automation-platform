@@ -206,6 +206,40 @@ def detect_stencils(root: etree._Element) -> set[str]:
     return detected
 
 
+def detect_unrecognized_stencils(root: etree._Element) -> set[str]:
+    """
+    Detect explicit `shape=` tokens whose value maps to NO known stencil family.
+
+    Fail-closed contra el antipatrón allowlist-por-omisión (Ax-C4N-016 /
+    gates_fail_closed): `detect_stencils()` sólo ve las 8 familias de
+    `SHAPE_PATTERNS`; un stencil corporativo no listado (p.ej. `shape=sap.hana.node`)
+    quedaba invisible y el diagrama heredaba "conforme" en silencio. Aquí se
+    inspecciona el valor del propio token `shape=` — no el estilo entero, para no
+    confundir un match de familia que ocurra en otro atributo — y todo lo que no
+    reconozca ninguna familia se devuelve como "por validar". El motor no lo declara
+    violación (no inventa lo que no puede probar) pero tampoco lo deja pasar mudo.
+
+    Returns:
+        Set of raw `shape=` values that matched no known family.
+    """
+    unrecognized: set[str] = set()
+
+    for cell in root.iter("mxCell"):
+        style = cell.get("style", "")
+
+        if not style:
+            continue
+
+        for match in STENCIL_PATTERN.finditer(style):
+            shape_value = match.group(1).strip()
+            if not shape_value:
+                continue
+            if not ANY_STENCIL_PATTERN.search(shape_value):
+                unrecognized.add(shape_value)
+
+    return unrecognized
+
+
 def validate_stencils(
     detected_stencils: set[str],
     allowed_stencils: list[str],
@@ -277,6 +311,7 @@ class XMLLinter:
         color_violations: list[ColorViolation] = []
         stencil_violations: list[StencilViolation] = []
         detected_stencils: set[str] = set()
+        unrecognized_stencils: set[str] = set()
         xml_well_formed = True
         archimate_needed = False
         archimate_valid = False
@@ -319,6 +354,17 @@ class XMLLinter:
             except Exception as e:
                 errors.append(f"Stencil validation error: {e}")
 
+        # Step 3b: Stencils no reconocidos (fail-closed, "por validar").
+        # Un `shape=` que no mapea a ninguna familia conocida no se declara
+        # violación (el motor no inventa) pero tampoco hereda "conforme" en
+        # silencio: se marca por validar y eleva el nivel a WARNING.
+        unrecognized_stencils = detect_unrecognized_stencils(root)
+        if unrecognized_stencils:
+            errors.append(
+                f"Found {len(unrecognized_stencils)} unrecognized stencil(s) "
+                f"(por validar): {', '.join(sorted(unrecognized_stencils))}"
+            )
+
         # Step 4: ArchiMate license check
         archimate_needed = requires_archimate_license(detected_stencils)
         if archimate_needed:
@@ -342,6 +388,7 @@ class XMLLinter:
             level=level,
             xml_well_formed=xml_well_formed,
             stencils_detected=sorted(detected_stencils),
+            unrecognized_stencils=sorted(unrecognized_stencils),
             stencil_violations=stencil_violations,
             color_violations=color_violations,
             requires_archimate_license=archimate_needed,

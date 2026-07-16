@@ -60,6 +60,26 @@ def valid_xml_with_archimate() -> str:
 
 
 @pytest.fixture
+def valid_xml_with_unlisted_stencil() -> str:
+    """XML con un stencil corporativo NO listado en SHAPE_PATTERNS (adversarial B-08).
+
+    `shape=sap.hana.node` es una familia real (SAP) fuera del allowlist de 8
+    familias. Antes del endurecimiento fail-closed pasaba invisible → conforme
+    por omisión. Debe marcarse "por validar" (WARNING), nunca COMPLIANT mudo.
+    """
+    return """<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel>
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    <mxCell id="2" value="SAP HANA" style="shape=sap.hana.node;fillColor=#4A90D9;strokeColor=#333333;" vertex="1" parent="1">
+      <mxGeometry x="200" y="150" width="80" height="80" as="geometry"/>
+    </mxCell>
+  </root>
+</mxGraphModel>"""
+
+
+@pytest.fixture
 def valid_xml_with_disallowed_color() -> str:
     """XML Draw.io con un color fuera de la paleta permitida."""
     return """<?xml version="1.0" encoding="UTF-8"?>
