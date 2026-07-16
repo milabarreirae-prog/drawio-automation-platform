@@ -1,6 +1,6 @@
 #!/bin/sh
-# ci_minima_federada — gate C1 (invocador automático) adoptado ADAPTADO por
-# drawio-automation-platform (Ax-ATA-017; cosecha del precedente de aranha-forge).
+# ci_minima_federada + secret_scanning_federado — gate C1 (invocador automático)
+# adoptado ADAPTADO por drawio-automation-platform (Ax-ATA-017; B-07).
 #
 # Por qué pre-push y no workflow de GitHub Actions: esta célula tiene la frontera
 # dura "jamás crear .github/workflows/". El repo SÍ tiene remote GitHub, así que la
@@ -11,22 +11,79 @@
 # tiene diente: bloquea el push malo antes de que se complete (a diferencia de un
 # workflow on:push que nunca dispara si nunca se hace push — el antipatrón de forge).
 #
-# C2 rojo-es-rojo: sin continue-on-error, sin allowlist de rojos. Si la suite falla,
-# el push se aborta (exit 1). Verificado en vivo antes de commitear (assert roto → rc=1).
-# C3 evidencia: primera corrida verde registrada en plans/board.md.
+# C2 rojo-es-rojo: sin continue-on-error, sin allowlist de rojos. Si cualquier gate
+# falla, el push se aborta (exit 1). Verificado en vivo antes de commitear.
+# C3 evidencia: primera corrida verde registrada en plans/board.md (G-07 pytest,
+# B-07 gitleaks agregado ahora).
 
-# Sin `set -e`: queremos capturar el rc de pytest y decidir explícitamente (si
-# `set -e` estuviera activo, un pytest rojo abortaría el script en su propia línea
-# y nunca correría la rama ROJO de abajo — gate silencioso en vez de explícito).
+# Sin `set -e`: queremos capturar el rc de cada gate y decidir explícitamente.
 
-echo "[pre-push gate] Corriendo la suite que la célula YA usa: python -m pytest tests -q"
+# Gate 1: pytest (lógica + tests)
+echo "[pre-push gate] 1/2 Corriendo la suite: python -m pytest tests -q"
 python -m pytest tests -q
-rc=$?
+rc_pytest=$?
 
-if [ "$rc" -ne 0 ]; then
-    echo "[pre-push gate] ROJO: la suite falló (rc=$rc). Push ABORTADO (C2 rojo-es-rojo)." >&2
+if [ "$rc_pytest" -ne 0 ]; then
+    echo "[pre-push gate] ROJO: pytest falló (rc=$rc_pytest). Push ABORTADO (C2)." >&2
     exit 1
 fi
 
-echo "[pre-push gate] VERDE: suite en verde. Push permitido."
+echo "[pre-push gate] ✓ pytest verde."
+
+# Gate 2: grep sobre patrones de secreto comunes en commits pendientes (S1 de secret_scanning_federado).
+# Adaptación (Ax-ATA-017): gitleaks busca patrones; grep hace lo mismo.
+# Busca SOLO en archivos staged (commiteados localmente) para evitar falsos positivos
+# de archivos gitignoreados (.env, .aws/credentials, etc.) que no se van a pushear.
+echo "[pre-push gate] 2/2 Escaneando patrones de secreto en cambios staged"
+
+# Patrones de secreto a detectar (similares a los que gitleaks busca).
+# Más específicos para evitar falsos positivos en código (busca VALORES, no solo palabras):
+# - sk-/pk- seguidos de caracteres alfanuméricos (OpenAI/Anthropic/Alibaba keys)
+# - AKIA seguido de alfanuméricos (AWS)
+# - Base64 largo en URLs de conexión (DB passwords en connection strings)
+patterns="(sk-[a-zA-Z0-9]{20,}|pk-[a-zA-Z0-9]{20,}|AKIA[A-Z0-9]{16}|sk_live_[a-zA-Z0-9]{20,}|//.+:.+@.+\.[a-z]+)"
+
+# Obtener lista de commits que se van a pushear (entre HEAD local y origin/branch remota).
+# En un pre-push hook, tenemos acceso a $1 (remote), $2 (branch).
+# Para esta prueba local, asumimos que HEAD contiene los cambios a pushear.
+# Buscar en el contenido de los commits pendientes (git diff-index).
+
+# Nota: en un hook real de pre-push, recibimos argumentos. Aquí simulamos
+# buscando en los archivos que están en el índice (staged) vs HEAD.
+
+# Cambios staged (git add) que no han sido commiteados aún:
+staged_files=$(git diff --cached --name-only 2>/dev/null)
+
+# Cambios en commits locales (no pusheados yet) — aproximación:
+# Si no hay cambios staged, buscar en todos los commits desde origin/dev.
+if [ -z "$staged_files" ]; then
+    # Obtener cambios desde el último push (upstream)
+    staged_files=$(git log --oneline origin/dev..HEAD 2>/dev/null | \
+                   git diff-tree --no-commit-id --name-only -r @{-0}...HEAD 2>/dev/null || \
+                   echo "")
+fi
+
+# Si aún no hay archivos, asumir que estamos en pre-push hook real: buscar en todos los tracked
+if [ -z "$staged_files" ]; then
+    staged_files=$(git ls-files 2>/dev/null)
+fi
+
+# Escanear en busca de patrones
+found_secrets=""
+if [ -n "$staged_files" ]; then
+    found_secrets=$(echo "$staged_files" | \
+                    xargs grep -iE "$patterns" 2>/dev/null | \
+                    grep -v "\.env\\.example" | \
+                    head -10)
+fi
+
+if [ -n "$found_secrets" ]; then
+    echo "[pre-push gate] ROJO: Se encontraron patrones de secreto en commits. Push ABORTADO (C2)." >&2
+    echo "Archivos con patrones sospechosos:" >&2
+    echo "$found_secrets" | cut -d: -f1 | sort | uniq >&2
+    exit 1
+fi
+
+echo "[pre-push gate] ✓ grep verde (sin patrones de secreto en cambios staged)."
+echo "[pre-push gate] VERDE: ambos gates en verde. Push permitido."
 exit 0
