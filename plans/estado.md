@@ -31,6 +31,34 @@ cat ../.hive/consensus/FREEZE.lock      # (FAR, ratificado) ¿freeze global que 
 #   zona libre y sin freeze → creo mi lock de rol, trabajo, marco la zona, la suelto al terminar.
 ```
 
+### Barrido canónico de propuestas abiertas (Ax-C4N-012)
+**Uso:** PASO 0 mejorado para cazadores votables. Complementa SALIDA TEMPRANA.
+
+**Por qué:** El proxy `mtime` en `../.hive/` es frágil — una propuesta abierta ANTES de mi último 
+commit y sin tocar el día de hoy se escapa. Esta secuencia es el método verdadero.
+
+**Procedimiento:**
+```bash
+# 1. Listar todas las propuestas abiertas (status: OPEN_FOR_VOTING) en ../.hive/consensus/proposals/
+for prop in ../.hive/consensus/proposals/*.yaml; do
+  grep -q "^status: OPEN_FOR_VOTING" "$prop" && echo "$prop"
+done
+
+# 2. Para cada propuesta, extraer el ID (ej: prop_coordinacion_dos_loops)
+# 3. Buscar en ../.hive/consensus/proposals.log si YO ya voté:
+grep "^VOTO\|.*\|drawio-automation-platform\|.*" ../.hive/consensus/proposals.log | grep "$PROP_ID" && echo "YA VOTADA" || echo "FALTA MI VOTO"
+
+# 4. Si falta mi voto, extraer deadline de la propuesta (campo `deadline:` en el yaml)
+# 5. Si deadline < ahora + 12h → NOVEDAD (voto pendiente urgente) → toma tarea de voto
+```
+
+**Responsabilidad:**
+- Ejecutar este barrido antes de decidir SALIDA TEMPRANA (si ya no lo hizo `git log`/`mtime`)
+- Si hay propuesta con deadline próximo SIN mi voto → registra en `estado.md` como `SEGUIMIENTO` 
+  e incluye en el ciclo
+- Después de votar, registra tu voto en `../.hive/consensus/proposals.log` + archivo `votes:` 
+  de la propuesta (no duplicar — si otro loop la tocó, merge honesto, ver G-04)
+
 ## Zonas y su estado
 | Zona | Qué abarca | Lock | Dueño actual |
 |------|-----------|------|--------------|
