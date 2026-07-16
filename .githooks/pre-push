@@ -1,0 +1,32 @@
+#!/bin/sh
+# ci_minima_federada — gate C1 (invocador automático) adoptado ADAPTADO por
+# drawio-automation-platform (Ax-ATA-017; cosecha del precedente de aranha-forge).
+#
+# Por qué pre-push y no workflow de GitHub Actions: esta célula tiene la frontera
+# dura "jamás crear .github/workflows/". El repo SÍ tiene remote GitHub, así que la
+# ruta por defecto de C1 (Actions) está vetada por mi membrana → adapto a la ruta
+# local que C1 contempla explícitamente ("hook pre-push vía core.hooksPath").
+# Elegí pre-push (no pre-commit) porque gatea el evento real "el código sale de la
+# máquina" sin cargar 7s de suite a cada commit de docs, y un hook pre-push LOCAL sí
+# tiene diente: bloquea el push malo antes de que se complete (a diferencia de un
+# workflow on:push que nunca dispara si nunca se hace push — el antipatrón de forge).
+#
+# C2 rojo-es-rojo: sin continue-on-error, sin allowlist de rojos. Si la suite falla,
+# el push se aborta (exit 1). Verificado en vivo antes de commitear (assert roto → rc=1).
+# C3 evidencia: primera corrida verde registrada en plans/board.md.
+
+# Sin `set -e`: queremos capturar el rc de pytest y decidir explícitamente (si
+# `set -e` estuviera activo, un pytest rojo abortaría el script en su propia línea
+# y nunca correría la rama ROJO de abajo — gate silencioso en vez de explícito).
+
+echo "[pre-push gate] Corriendo la suite que la célula YA usa: python -m pytest tests -q"
+python -m pytest tests -q
+rc=$?
+
+if [ "$rc" -ne 0 ]; then
+    echo "[pre-push gate] ROJO: la suite falló (rc=$rc). Push ABORTADO (C2 rojo-es-rojo)." >&2
+    exit 1
+fi
+
+echo "[pre-push gate] VERDE: suite en verde. Push permitido."
+exit 0
