@@ -68,6 +68,7 @@ grep "^VOTO\|.*\|drawio-automation-platform\|.*" ../.hive/consensus/proposals.lo
 | `hive` | feromonas, votos, propuestas al común | INACTIVO | — |
 
 ## Bitácora de locks (append-only; el más reciente arriba)
+- 2026-07-16T08:30Z · constructor (enjambre-constructor) · zona `board`+`docs` (NO `engine` ni `hive`) · B-07 Gitleaks pre-push completado. Agregado 2º gate (detect-secrets/grep) al hook pre-push; 202 passed 93% cov, rojo-es-rojo verificado EN VIVO, Ax-C4N-016 destilado. Board: B-07 BACKLOG→VERIFICADO; B-08 (XMLLinter Q1) sembrado como próxima. Commit `5ce873a` (2026-07-16T08:25Z). LIBERADO (zonas libres, sin freeze detectado).
 - 2026-07-13T17:40Z · constructor (enjambre-constructor) · zona `hive`+`board` (NO `engine`) · G-04 cierre de
   remanente tras colisión con G-03. **Observado:** desperté con árbol git limpio (sin lock rancio, sin
   freeze) pero YA había un G-03 commiteado por el loop meta-consciencia minutos antes votando 3 de las 5
