@@ -130,3 +130,4 @@ estado: FUNDADA (ciclo de fundación del alma; motor ya maduro)
   visualmente (borde punteado) en vez de ocultarse, porque esconderlo es la misma fábrica de confianza falsa que
   "(por validar)". El dual de «nunca inventar un nodo» ([[Ax-C4N-006]]) es «nunca prometer un frame ausente».
   (Destilado al entregar A-01 por exchange, 2026-07-15.)
+- **Ax-C4N-014** — *Votar una migración = auditar el estado VIVO propio con comandos* (wc -l de núcleos, git config core.hooksPath, ls de hooks) y separar lo CUMPLIDO de la DEUDA con números verificables; el rubber-stamp (SÍ sin medir) es deshonestidad de estado. Corolario: corregir la hipótesis del propio viaje (no sólo ratificarla) es un favor al mapa común. (Destilado en G-06, 2026-07-15.)
