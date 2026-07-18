@@ -36,6 +36,32 @@ echo "[pre-push gate] ✓ pytest verde."
 # de archivos gitignoreados (.env, .aws/credentials, etc.) que no se van a pushear.
 echo "[pre-push gate] 2/2 Escaneando patrones de secreto en cambios staged"
 
+# B-11 (gates_toolchain_fail_closed C1): fail-closed ante toolchain ausente.
+# Simetría con B-08 (allowlist-por-omisión del linter): si grep/xargs/git faltaran
+# (PATH roto, checkout mínimo, stub de la Store), `found_secrets` quedaría vacío y el
+# gate daría "verde" sin haber escaneado NADA = verde-por-omisión (fail-open silencioso).
+# Por C1 estricto el degradado debe ser ROJO. Escape consciente: GATE_ALLOW_DEGRADED=1
+# deja una advertencia DISTINTA (nunca silencio), mismo espíritu que el gate de B-08.
+missing_tools=""
+for tool in grep xargs git; do
+    command -v "$tool" >/dev/null 2>&1 || missing_tools="$missing_tools $tool"
+done
+if [ -n "$missing_tools" ]; then
+    if [ "${GATE_ALLOW_DEGRADED:-0}" = "1" ]; then
+        echo "[pre-push gate] ⚠ DEGRADADO CONSCIENTE: toolchain de escaneo ausente ($missing_tools)." >&2
+        echo "  Gate 2 OMITIDO por GATE_ALLOW_DEGRADED=1 — el escaneo de secretos NO corrió." >&2
+    else
+        echo "[pre-push gate] ROJO: toolchain de escaneo de secretos ausente ($missing_tools). Push ABORTADO (C1)." >&2
+        echo "  Sin estas utilidades el gate no puede escanear; degradar en silencio sería verde-por-omisión." >&2
+        echo "  Instálalas, o si es deliberado: GATE_ALLOW_DEGRADED=1 git push (deja rastro, nunca silencio)." >&2
+        exit 1
+    fi
+fi
+
+# Sólo escaneamos si el toolchain está completo (si llegamos aquí con tools ausentes,
+# fue por escape consciente y saltamos el escaneo, ya advertido arriba).
+if [ -z "$missing_tools" ]; then
+
 # Patrones de secreto a detectar (similares a los que gitleaks busca).
 # Más específicos para evitar falsos positivos en código (busca VALORES, no solo palabras):
 # - sk-/pk- seguidos de caracteres alfanuméricos (OpenAI/Anthropic/Alibaba keys)
@@ -85,5 +111,8 @@ if [ -n "$found_secrets" ]; then
 fi
 
 echo "[pre-push gate] ✓ grep verde (sin patrones de secreto en cambios staged)."
+
+fi  # fin del bloque de escaneo (sólo con toolchain completo, B-11)
+
 echo "[pre-push gate] VERDE: ambos gates en verde. Push permitido."
 exit 0
