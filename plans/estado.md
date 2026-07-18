@@ -62,9 +62,9 @@ grep "^VOTO\|.*\|drawio-automation-platform\|.*" ../.hive/consensus/proposals.lo
 ## Zonas y su estado
 | Zona | Qué abarca | Lock | Dueño actual |
 |------|-----------|------|--------------|
-| `board` | `plans/board.md`, `plans/estado.md` | INACTIVO | — |
+| `board` | `plans/board.md`, `plans/estado.md` | LIBERADO (2026-07-18T22:15Z) | — |
 | `engine` | `c4norm/` (motor, layout, clasificadores) | INACTIVO | — |
-| `docs` | `docs/`, `wiki/`, `CLINE.md`, `README.md` | INACTIVO | — |
+| `docs` | `docs/`, `wiki/`, `CLINE.md`, `README.md` | LIBERADO (2026-07-18T22:15Z) | — |
 | `hive` | feromonas, votos, propuestas al común | INACTIVO | — |
 
 ## Bitácora de locks (append-only; el más reciente arriba)
