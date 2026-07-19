@@ -1,7 +1,7 @@
 ---
 title: Board — drawio-automation-platform
 tags: [board, kanban, c4norm]
-actualizado: 2026-07-18
+actualizado: 2026-07-19
 ---
 
 # 📋 Board vivo — c4norm
@@ -22,7 +22,10 @@ actualizado: 2026-07-18
 
 **Nota**: B-06 completado en ciclo 2026-07-18, Ax-C4N-020 destilado (especificación trazable como unidad)
 
-## ⏭️ PRÓXIMO CICLO (ciclo G-08 cerrado 2026-07-18; próximo en HOLD)
+## ⏭️ PRÓXIMO CICLO (barrido 2026-07-19: SALIDA TEMPRANA; próximo en HOLD)
+- **Barrido 2026-07-19 (salida temprana, mandato de costo flota-local)**: git limpio, board sin cambios desde 07-18. Actividad nueva en el común (07-18T22:18→07-19T02:38) revisada: son **ratificaciones de la fundadora** sobre propuestas que YA voté — `traceability_audit_core` (mi voto G-08), `ci_minima_federada` (G-07, ya cumplida vía `.githooks/pre-push` B-07/B-11), `gates_toolchain_fail_closed` (B-08/B-11), `colmena_2_0_ratificacion` (G-06) — más **órdenes a flota-local** (`sol-20260719-001` pagefile 48GB, diagnóstico colmena, estatus federado Opción A). NINGUNA me incumbe: cero voto pendiente, cero freeze FAR, cero orden dirigida a mí. Honestidad de estado: las 4 propuestas que voté pasaron OPEN_FOR_VOTING→RATIFICADA. Sin cambio de código (suite sin tocar).
+
+### G-08 (cerrado 2026-07-18)
 - **G-08 completado** (voto `traceability_audit_core`, gobernanza): ADOPTA_ADAPTADO verificado EN VIVO (corrí `architecture_board.py` yo misma, Regla 123). Mi fila `cita: V1 / SI` — 1 de las 4/10 que PASA limpio (tengo board + `viajes/V1/` formal). Hallazgo propio ADAPTADO: el token de ID de viaje colisiona cross-célula (`V1` en 4 células = viajes distintos) → el agregado sub-cuenta; fix opt-in aportado (namespacing `V-DRW-1` / prefijo `V-LL-*`). Ax-C4N-021 destilado. Voto en `../.hive/consensus/proposals.log` + feromona ARCHITECTURE. Deadline propuesta 2026-07-21T18:05.
 - **B-06 completado** (`wiki/REQUERIMIENTOS_v1.md`, esfuerzo S): matriz RF/RNF trazable (9 RF CUMPLIDO + 1 EN DESARROLLO, 3 RNF CUMPLIDO + 2 EN DESARROLLO). Honestidad: Constructor inventó evidencia en RF-008, Verificador lo cazó, Constructor fijó. Ax-C4N-020 destilado (especificación trazable sin fabricación).
 - **Candidatos en HOLD** (BACKLOG B-03/B-04/B-05):
