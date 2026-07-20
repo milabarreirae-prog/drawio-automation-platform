@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 from c4norm.normalize import normalize
+from c4norm.obsidian import export_obsidian
 from c4norm.sheet import TitleBlock
 
 
@@ -33,6 +34,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--rev", default="A")
     parser.add_argument("--org", dest="organization", default="", help="Organización (ISO 7200)")
     parser.add_argument("--doc-no", dest="doc_number", default="", help="Número de plano (ISO 7200)")
+    parser.add_argument(
+        "--obsidian", type=Path, default=None,
+        help="Directorio de vault Obsidian: además exporta .drawio + nota .md (contrato por validar)",
+    )
     args = parser.parse_args(argv)
 
     xml_in = args.input.read_text(encoding="utf-8")
@@ -68,6 +73,21 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[c4norm] escrito en {args.output}", file=sys.stderr)
     else:
         print(xml_out)
+
+    if args.obsidian:
+        if args.output:
+            # Quita el sufijo compuesto .drawio.xml / .drawio / .xml para no producir
+            # nombres como "salida.drawio.drawio" (Path.stem sólo pela el último sufijo).
+            basename = args.output.name
+            for suffix in (".drawio.xml", ".xml", ".drawio"):
+                if basename.endswith(suffix):
+                    basename = basename[: -len(suffix)]
+                    break
+        else:
+            basename = report.diagram_name
+        drawio_path, md_path = export_obsidian(xml_out, report, tb, args.obsidian, basename)
+        print(f"[c4norm] Obsidian: {md_path} + {drawio_path}", file=sys.stderr)
+
     return 0
 
 
