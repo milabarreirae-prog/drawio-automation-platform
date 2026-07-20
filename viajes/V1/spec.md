@@ -11,7 +11,7 @@ origen:
   - "Autoridad del decreto (mismo documento, campo `autoridad`): «DECRETO de la fundadora (2026-07-15, sesión directa: \"no quiero experimentos, quiero que migres\")»."
   - "Voto propio ADOPTA_ADAPTADO en `colmena_2_0_ratificacion` (`plans/board.md`, entrada G-06, 2026-07-15 20:45 -0400): «D1 sin `viajes/spec`, equivalente = tabla BACKLOG [...] Corrección de mi viaje: cliente = **arquitecto con un drawio crudo**, miel = **normalización fiel a C4 firmado (ISO 7200) que no inventa** (no \"generar desde cero\"). Destila Ax-C4N-014.»"
   - "Siembra de esta tarea (`plans/board.md`, BACKLOG ítem D1, 2026-07-18): «`viajes/V1/spec.md` — adaptar la tabla BACKLOG a spec de viaje (Colmena 2.0, decreto fundadora: \"hacemos cera, no miel\"): cada tarea nombra su viaje y su miel; DoD = recorrido EN FRÍO en instrumento vivo. No reinventar: la tabla actual es la base.»"
-estado: "V1 sembrado hoy; las 4 rebanadas (B-03..B-06) heredadas de BACKLOG, TODAS abiertas — ninguna tiene aún recorrido en frío propio"
+estado: "V1 formalizado 2026-07-18; cliente + miel VALIDADOS contra el alma en vivo (README.md:1 / CLINE.md:8-12, Regla 123) y feromona VIAJE emitida en el ledger federado (../.hive/consensus/proposals.log) el 2026-07-20 — cierra el gap de sincronización que el hallazgo transversal viajes_validacion_vencida cazó (mi validación de 07-15 vivía sólo en pheromones local, no cruzaba a proposals.log). Las 4 rebanadas (B-03..B-06) heredadas de BACKLOG siguen abiertas, gateadas por precondición externa — ninguna tiene aún recorrido en frío propio."
 ---
 
 # 🍯 V1 — "El arquitecto deja de dibujar a mano lo que ya sabe el sistema"
