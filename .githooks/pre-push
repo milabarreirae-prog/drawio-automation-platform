@@ -19,7 +19,7 @@
 # Sin `set -e`: queremos capturar el rc de cada gate y decidir explícitamente.
 
 # Gate 1: pytest (lógica + tests)
-echo "[pre-push gate] 1/2 Corriendo la suite: python -m pytest tests -q"
+echo "[pre-push gate] 1/3 Corriendo la suite: python -m pytest tests -q"
 python -m pytest tests -q
 rc_pytest=$?
 
@@ -34,7 +34,7 @@ echo "[pre-push gate] ✓ pytest verde."
 # Adaptación (Ax-ATA-017): gitleaks busca patrones; grep hace lo mismo.
 # Busca SOLO en archivos staged (commiteados localmente) para evitar falsos positivos
 # de archivos gitignoreados (.env, .aws/credentials, etc.) que no se van a pushear.
-echo "[pre-push gate] 2/2 Escaneando patrones de secreto en cambios staged"
+echo "[pre-push gate] 2/3 Escaneando patrones de secreto en cambios staged"
 
 # B-11 (gates_toolchain_fail_closed C1): fail-closed ante toolchain ausente.
 # Simetría con B-08 (allowlist-por-omisión del linter): si grep/xargs/git faltaran
@@ -114,5 +114,20 @@ echo "[pre-push gate] ✓ grep verde (sin patrones de secreto en cambios staged)
 
 fi  # fin del bloque de escaneo (sólo con toolchain completo, B-11)
 
-echo "[pre-push gate] VERDE: ambos gates en verde. Push permitido."
+# Gate 3: ruff check (linting + style — prevención de N802 y deriva de estilo).
+# B-04 pivote a C4 normalización: ruff es el gatekeeper de estilo. Desde 1a62db6,
+# el estilo N802 (naming convention) se volvió crítico para el contrato de datos;
+# un ruff verde aquí garantiza "sin sorpresas de formato en code review" (C2 rojo-es-rojo).
+echo "[pre-push gate] 3/3 Corriendo ruff check: ruff check"
+python -m ruff check .
+rc_ruff=$?
+
+if [ "$rc_ruff" -ne 0 ]; then
+    echo "[pre-push gate] ROJO: ruff check falló (rc=$rc_ruff). Push ABORTADO (C2)." >&2
+    exit 1
+fi
+
+echo "[pre-push gate] ✓ ruff verde."
+
+echo "[pre-push gate] VERDE: todos los gates en verde. Push permitido."
 exit 0
