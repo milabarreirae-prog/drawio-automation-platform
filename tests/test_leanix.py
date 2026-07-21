@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+import c4norm.emit as emit_mod
 from c4norm.leanix import (
     LEANIX_C4_MAP,
     LeanIXClient,
@@ -172,7 +173,7 @@ def test_declared_parent_is_assigned() -> None:
     assert by_id["app-reportes-h"].parent == "dc-region-b"
 
 
-def test_relToParent_does_not_produce_a_spurious_edge() -> None:
+def test_rel_to_parent_does_not_produce_a_spurious_edge() -> None:
     """``relToParent`` empieza con ``rel`` pero es contención, no una relación de
     arquitectura: NUNCA debe aparecer como Edge padre→hijo."""
     diagram, _warnings = inventory_to_diagram(_load_hierarchy_fixture())
@@ -180,6 +181,25 @@ def test_relToParent_does_not_produce_a_spurious_edge() -> None:
 
     assert ("dc-region-a", "app-portal-h") not in edge_pairs
     assert ("app-portal-h", "dc-region-a") not in edge_pairs
+
+
+def test_hierarchy_decomposes_into_multiple_sheets_when_forced_to_split(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``emit.py`` sólo decide multi-hoja cuando el contenido desborda la escala
+    mínima; con la página ajustada 1:1 al contenido (``fit_page``) eso NUNCA ocurre
+    por tamaño de contenido solo — el multi-hoja es condicional en escala, no
+    automático por boundaries. Aquí se fuerza el umbral (mismo patrón que
+    ``tests/test_multisheet.py::test_multisheet_when_overflow``) para probar por el
+    camino REAL de ``emit_c4`` que la jerarquía declarada (padre → ``Node.parent`` →
+    promoción a boundary) sí produce >1 hoja cuando ``emit.py`` decide dividir."""
+    monkeypatch.setattr(emit_mod, "_MIN_SCALE", 5.0)
+    diagram, _warnings = inventory_to_diagram(_load_hierarchy_fixture())
+    result = emit_mod.emit_c4(diagram, c4_level=1)
+
+    assert result.sheets > 1
+    root = ET.fromstring(result.xml)  # noqa: S314 - XML propio, no de fuente externa
+    assert len(root.findall("diagram")) > 1
 
 
 def test_dangling_declared_parent_warns_and_does_not_group() -> None:
