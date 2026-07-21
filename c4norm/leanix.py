@@ -101,10 +101,15 @@ def _relation_targets(raw: dict) -> list[str]:
     ``{"edges": [{"node": {"factSheet": {"id": "..."}}}]}``. Se procesa CUALQUIER
     clave que siga ese patrón (no una lista cerrada) para no perder relaciones que
     el fixture declare con otro nombre de campo estándar de LeanIX.
+
+    ``relToParent`` se EXCLUYE aquí a propósito: aunque empieza con ``rel`` (y por
+    tanto calzaría con el patrón), declara contención jerárquica, no una relación
+    de arquitectura — se procesa aparte en ``_declared_parent`` para no dibujar una
+    flecha espuria padre→hijo.
     """
     targets: list[str] = []
     for key, value in raw.items():
-        if not key.startswith("rel") or not isinstance(value, dict):
+        if key == "relToParent" or not key.startswith("rel") or not isinstance(value, dict):
             continue
         rel_edges = value.get("edges")
         if not isinstance(rel_edges, list):
@@ -120,15 +125,48 @@ def _relation_targets(raw: dict) -> list[str]:
     return targets
 
 
+def _declared_parent(raw: dict) -> str | None:
+    """Id del FactSheet padre DECLARADO por ``raw`` en su campo ``relToParent``, o
+    ``None`` si no lo declara.
+
+    Misma forma embebida ``{"edges": [{"node": {"factSheet": {"id": "..."}}}]}``
+    que el resto de campos ``rel*``. Ax-C4N-001: la agrupación SÓLO viene de este
+    campo declarado — nunca se infiere de nombres, prefijos ni otra heurística. Se
+    toma el primer edge declarado (un FactSheet tiene a lo sumo un padre en un
+    árbol de contención).
+    """
+    value = raw.get("relToParent")
+    if not isinstance(value, dict):
+        return None
+    rel_edges = value.get("edges")
+    if not isinstance(rel_edges, list):
+        return None
+    for rel_edge in rel_edges:
+        if not isinstance(rel_edge, dict):
+            continue
+        rel_node = rel_edge.get("node")
+        fs_ref = rel_node.get("factSheet") if isinstance(rel_node, dict) else None
+        tgt_id = fs_ref.get("id") if isinstance(fs_ref, dict) else None
+        if isinstance(tgt_id, str) and tgt_id:
+            return tgt_id
+    return None
+
+
 def inventory_to_diagram(
     response: dict, *, name: str = "Inventario LeanIX"
 ) -> tuple[Diagram, list[str]]:
     """Construye el ``Diagram`` C4 tipado a partir de una respuesta ``allFactSheets``.
 
     Devuelve ``(diagram, advertencias)``. Las advertencias son texto legible "por
-    validar": tipos LeanIX sin mapeo C4, y relaciones descartadas por apuntar a un
-    extremo inexistente. El motor nunca inventa (Ax-C4N-001): lo dudoso se marca,
-    nunca se calla ni se adivina.
+    validar": tipos LeanIX sin mapeo C4, relaciones descartadas por apuntar a un
+    extremo inexistente, y jerarquía declarada (``relToParent``) inconsistente
+    (padre inexistente o autorreferencia). El motor nunca inventa (Ax-C4N-001): lo
+    dudoso se marca, nunca se calla ni se adivina.
+
+    La jerarquía SÓLO sale de ``relToParent`` (nunca se infiere de nombres o
+    prefijos): todo FactSheet que sea padre declarado de al menos un hijo se
+    PROMUEVE a boundary (``C4Type.DEPLOYMENT_NODE``), lo que activa el camino
+    multi-hoja de ``emit.py`` (una hoja por boundary de nivel superior).
     """
     raw_nodes = parse_factsheets(response)
     warnings: list[str] = []
@@ -174,6 +212,33 @@ def inventory_to_diagram(
                 warnings.append(f"relación {src_id}->{tgt_id} descarta: extremo inexistente")
                 continue
             diagram.edges.append(Edge(id=f"rel-{src_id}-{tgt_id}", source=src_id, target=tgt_id))
+
+    # Jerarquía declarada (Ax-C4N-001: nunca inventar = nunca perder). La agrupación
+    # SÓLO viene de ``relToParent`` — nunca se infiere de nombres ni prefijos. Un
+    # padre inexistente entre los FactSheets conservados no se inventa: el nodo
+    # queda sin agrupar y se advierte, nunca se descarta.
+    nodes_by_id = {n.id: n for n in diagram.nodes}
+    child_counts: dict[str, int] = {}
+    for raw in kept_raw:
+        fs_id = raw["id"]
+        parent_id = _declared_parent(raw)
+        if parent_id is None:
+            continue
+        if parent_id == fs_id:
+            warnings.append(f"FactSheet {fs_id} declara parent a si mismo → ignorado")
+            continue
+        if parent_id not in known_ids:
+            warnings.append(f"FactSheet {fs_id} declara parent {parent_id} inexistente → sin agrupar")
+            continue
+        nodes_by_id[fs_id].parent = parent_id
+        child_counts[parent_id] = child_counts.get(parent_id, 0) + 1
+
+    # Todo FactSheet que sea padre declarado de al menos un hijo se promueve a
+    # boundary: nunca silencioso, cada promoción queda advertida (auditable).
+    for parent_id, n in child_counts.items():
+        parent_node = nodes_by_id[parent_id]
+        parent_node.c4_type = C4Type.DEPLOYMENT_NODE
+        warnings.append(f"FactSheet {parent_node.id} promovido a boundary (agrupa {n} hijos declarados)")
 
     return diagram, warnings
 

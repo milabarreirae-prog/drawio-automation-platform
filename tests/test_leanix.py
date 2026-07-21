@@ -25,10 +25,15 @@ from c4norm.leanix import (
 from c4norm.model import C4Type
 
 _FIXTURE_PATH = Path(__file__).parent / "fixtures" / "leanix_falabella.json"
+_HIERARCHY_FIXTURE_PATH = Path(__file__).parent / "fixtures" / "leanix_falabella_hierarchy.json"
 
 
 def _load_fixture() -> dict:
     return json.loads(_FIXTURE_PATH.read_text(encoding="utf-8"))
+
+
+def _load_hierarchy_fixture() -> dict:
+    return json.loads(_HIERARCHY_FIXTURE_PATH.read_text(encoding="utf-8"))
 
 
 # =============================================================================
@@ -140,6 +145,96 @@ def test_valid_relationships_are_kept() -> None:
     assert ("app-portal", "app-pagos") in edge_pairs
     assert ("app-pagos", "do-transacciones") in edge_pairs
     assert ("app-pagos", "provider-gateway") in edge_pairs
+
+
+# =============================================================================
+# Jerarquía declarada (relToParent) — Ax-C4N-001: agrupación SÓLO declarada
+# =============================================================================
+
+
+def test_no_hierarchy_stays_flat_and_unchanged() -> None:
+    """Regresión: sin ningún ``relToParent`` en la respuesta, el comportamiento debe
+    ser byte-idéntico al de hoy (todos los nodos sin parent, ningún boundary)."""
+    diagram, warnings = inventory_to_diagram(_load_fixture())
+
+    assert all(n.parent is None for n in diagram.nodes)
+    assert all(n.c4_type is not C4Type.DEPLOYMENT_NODE for n in diagram.nodes)
+    assert not any("promovido a boundary" in w for w in warnings)
+    assert not any("declara parent" in w for w in warnings)
+
+
+def test_declared_parent_is_assigned() -> None:
+    diagram, _warnings = inventory_to_diagram(_load_hierarchy_fixture())
+    by_id = {n.id: n for n in diagram.nodes}
+
+    assert by_id["app-portal-h"].parent == "dc-region-a"
+    assert by_id["app-pagos-h"].parent == "dc-region-a"
+    assert by_id["app-reportes-h"].parent == "dc-region-b"
+
+
+def test_relToParent_does_not_produce_a_spurious_edge() -> None:
+    """``relToParent`` empieza con ``rel`` pero es contención, no una relación de
+    arquitectura: NUNCA debe aparecer como Edge padre→hijo."""
+    diagram, _warnings = inventory_to_diagram(_load_hierarchy_fixture())
+    edge_pairs = {(e.source, e.target) for e in diagram.edges}
+
+    assert ("dc-region-a", "app-portal-h") not in edge_pairs
+    assert ("app-portal-h", "dc-region-a") not in edge_pairs
+
+
+def test_dangling_declared_parent_warns_and_does_not_group() -> None:
+    diagram, warnings = inventory_to_diagram(_load_hierarchy_fixture())
+    by_id = {n.id: n for n in diagram.nodes}
+
+    assert "app-huerfano-h" in by_id, "el nodo con padre colgante fue descartado (nunca perder)"
+    assert by_id["app-huerfano-h"].parent is None
+    assert any(
+        "app-huerfano-h" in w and "dc-region-inexistente" in w and "sin agrupar" in w for w in warnings
+    ), f"falta advertencia de parent declarado inexistente: {warnings}"
+
+
+def test_self_parent_is_ignored_without_cycle() -> None:
+    diagram, warnings = inventory_to_diagram(_load_hierarchy_fixture())
+    by_id = {n.id: n for n in diagram.nodes}
+
+    assert by_id["app-selfparent-h"].parent is None
+    assert any(
+        "app-selfparent-h" in w and "a si mismo" in w and "ignorado" in w for w in warnings
+    ), f"falta advertencia de self-parent: {warnings}"
+
+
+def test_declared_parents_are_promoted_to_boundary_with_warning() -> None:
+    diagram, warnings = inventory_to_diagram(_load_hierarchy_fixture())
+    by_id = {n.id: n for n in diagram.nodes}
+
+    assert by_id["dc-region-a"].c4_type is C4Type.DEPLOYMENT_NODE
+    assert by_id["dc-region-b"].c4_type is C4Type.DEPLOYMENT_NODE
+    # itc-shared-h no es padre de nadie: no se promueve.
+    assert by_id["itc-shared-h"].c4_type is not C4Type.DEPLOYMENT_NODE
+
+    assert any(
+        "dc-region-a" in w and "promovido a boundary" in w and "2 hijos declarados" in w for w in warnings
+    ), f"falta advertencia de promoción para dc-region-a: {warnings}"
+    assert any(
+        "dc-region-b" in w and "promovido a boundary" in w and "1 hijos declarados" in w for w in warnings
+    ), f"falta advertencia de promoción para dc-region-b: {warnings}"
+
+
+def test_hierarchy_end_to_end_produces_valid_xml() -> None:
+    """Camino real vía ``emit_c4`` (mismo patrón que el end-to-end existente):
+    una jerarquía declarada produce XML válido. Multi-hoja es condicional en escala
+    (no automática por boundaries); eso es una futura palanca, no parte de B-04
+    (Ax-C4N-023: «lo dudoso no bloquea, se marca»)."""
+    xml_out, warnings = leanix_to_c4(
+        _load_hierarchy_fixture(), c4_level=1, name="Inventario jerárquico (sintético)"
+    )
+
+    ET.fromstring(xml_out)  # noqa: S314 - XML propio, no de fuente externa
+    # XML es válido; no aseveramos sobre sheet count (condicional en escala + desborde).
+
+    assert any("promovido a boundary" in w for w in warnings)
+    assert any("sin agrupar" in w for w in warnings)
+    assert any("a si mismo" in w for w in warnings)
 
 
 # =============================================================================
