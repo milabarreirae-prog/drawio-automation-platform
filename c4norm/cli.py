@@ -10,9 +10,11 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import json
 import sys
 from pathlib import Path
 
+from c4norm.leanix import inventory_to_diagram, leanix_to_c4
 from c4norm.normalize import normalize
 from c4norm.obsidian import export_obsidian
 from c4norm.sheet import TitleBlock
@@ -20,7 +22,11 @@ from c4norm.sheet import TitleBlock
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="c4norm", description="Normaliza Draw.io crudo a C4.")
-    parser.add_argument("input", type=Path, help="Ruta al .drawio.xml de entrada")
+    parser.add_argument("input", type=Path, nargs="?", default=None, help="Ruta al .drawio.xml de entrada")
+    parser.add_argument(
+        "--from-leanix", type=Path, default=None, metavar="response.json",
+        help="Ruta a un JSON de respuesta GraphQL allFactSheets de LeanIX (camino tipado, no .drawio.xml)",
+    )
     parser.add_argument("--level", type=int, default=2, choices=[1, 2, 3], help="Nivel C4 objetivo")
     parser.add_argument("--classifier", default="heuristic", choices=["heuristic", "llm", "auto"])
     parser.add_argument("-o", "--output", type=Path, default=None, help="Salida (por defecto: stdout)")
@@ -40,7 +46,6 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    xml_in = args.input.read_text(encoding="utf-8")
     date = args.date or datetime.date.today().isoformat()
     tb = TitleBlock(
         project=args.project,
@@ -56,6 +61,35 @@ def main(argv: list[str] | None = None) -> int:
     if not tb.title:
         tb = None  # deja que normalize tome el nombre del diagrama
 
+    if args.from_leanix:
+        response = json.loads(args.from_leanix.read_text(encoding="utf-8"))
+        diagram_name = args.title or "Inventario LeanIX"
+        diagram, warnings = inventory_to_diagram(response, name=diagram_name)
+        xml_out, _warnings = leanix_to_c4(response, c4_level=args.level, name=diagram_name, title_block=tb)
+        por_validar = sum(1 for n in diagram.nodes if n.cmdb_status == "por validar")
+        print(
+            f"[c4norm leanix] {len(diagram.nodes)} nodos, {len(diagram.edges)} aristas, "
+            f"{por_validar} por validar",
+            file=sys.stderr,
+        )
+        for w in warnings:
+            print(f"[c4norm leanix]   ⚠ {w}", file=sys.stderr)
+
+        if args.output:
+            args.output.write_text(xml_out, encoding="utf-8")
+            print(f"[c4norm] escrito en {args.output}", file=sys.stderr)
+        else:
+            print(xml_out)
+        return 0
+
+    if args.input is None:
+        print(
+            "[c4norm] error: se requiere <input> (.drawio.xml) o --from-leanix <response.json>",
+            file=sys.stderr,
+        )
+        return 2
+
+    xml_in = args.input.read_text(encoding="utf-8")
     xml_out, report = normalize(xml_in, c4_level=args.level, classifier=args.classifier, title_block=tb)
 
     flag = " ⚠ overflow (requiere multi-hoja)" if report.overflow else ""

@@ -1,0 +1,98 @@
+{
+  "data": {
+    "allFactSheets": {
+      "edges": [
+        {
+          "node": {
+            "id": "app-portal",
+            "type": "Application",
+            "displayName": "Portal Ventas",
+            "description": "Portal web de cara al cliente para compras online.",
+            "relApplicationToITComponent": {
+              "edges": [
+                { "node": { "factSheet": { "id": "itc-runtime" } } }
+              ]
+            },
+            "relApplicationToDataObject": {
+              "edges": [
+                { "node": { "factSheet": { "id": "do-clientes" } } },
+                { "node": { "factSheet": { "id": "do-inexistente" } } }
+              ]
+            },
+            "relApplicationToApplication": {
+              "edges": [
+                { "node": { "factSheet": { "id": "app-pagos" } } }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "id": "app-pagos",
+            "type": "Application",
+            "displayName": "Motor Pagos",
+            "description": "Motor de procesamiento de pagos y conciliación.",
+            "relApplicationToDataObject": {
+              "edges": [
+                { "node": { "factSheet": { "id": "do-transacciones" } } }
+              ]
+            },
+            "relApplicationToProvider": {
+              "edges": [
+                { "node": { "factSheet": { "id": "provider-gateway" } } }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "id": "itc-runtime",
+            "type": "ITComponent",
+            "displayName": "Runtime Node.js",
+            "description": "Componente técnico de ejecución compartido."
+          }
+        },
+        {
+          "node": {
+            "id": "do-clientes",
+            "type": "DataObject",
+            "displayName": "BD Clientes",
+            "description": "Datos maestros de clientes."
+          }
+        },
+        {
+          "node": {
+            "id": "do-transacciones",
+            "type": "DataObject",
+            "displayName": "BD Transacciones",
+            "description": "Registro de transacciones de pago."
+          }
+        },
+        {
+          "node": {
+            "id": "provider-gateway",
+            "type": "Provider",
+            "displayName": "Gateway Pagos Externo",
+            "description": "Proveedor externo de procesamiento de pagos."
+          }
+        },
+        {
+          "node": {
+            "id": "techstack-legado",
+            "type": "TechnologyStack",
+            "displayName": "Stack Legado XYZ",
+            "description": "Componente heredado sin FactSheet estándar de LeanIX."
+          }
+        },
+        {
+          "node": {
+            "id": "iface-portal-pagos",
+            "type": "Interface",
+            "displayName": "Integración Portal↔Pagos",
+            "description": "Interfaz de integración entre Portal Ventas y Motor Pagos."
+          }
+        }
+      ]
+    }
+  }
+}
