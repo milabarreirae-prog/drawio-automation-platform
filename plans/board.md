@@ -23,7 +23,13 @@ actualizado: 2026-07-19 (B-05 PRODUCTO — pivote por decreto de la fundadora)
 
 **Nota**: B-06 completado en ciclo 2026-07-18, Ax-C4N-020 destilado (especificación trazable como unidad)
 
-## ⏭️ PRÓXIMO CICLO (B-04 cerrado 2026-07-20 — PRODUCTO bajo orden VINCULANTE)
+## ⏭️ PRÓXIMO CICLO
+### 2026-07-21T16:00 (ciclo presente) — SALIDA TEMPRANA POR BACKLOG GATEADO
+- **B-04 refinement completado**: soporte para jerarquía declarada en inventarios LeanIX (campo `relToParent`); promoción automática de padres a boundaries (DEPLOYMENT_NODE); edge cases (autorreferencia, padre inexistente) como advertencias honesas, nunca fallos (Ax-C4N-001). Fixture + 7 tests con diente. Suite: **235 passed, 92% cov**. Commit `1a62db6`. Ax-C4N-025 destilado. Feromona emitida.
+- **Backlog estado**: B-03 (load-test corp) + B-04b (SSO aranha-robots, `recheck_by:2026-08-03`) + B-06 (aparentemente completo 07-18) = **ENTERO GATEADO**. Candidatos multi-hoja/demo mencionados como aspiración, no en BACKLOG formal.
+- **Aplicación Regla 1 reforma_loop_20260720 + Ax-C4N-022**: "SAL TEMPRANO si backlog gateado." Honestidad de estado: ciclo ocioso legítimo tras B-04 refinement. Sin voto OPEN_FOR_VOTING, sin orden dirigida, sin deadline próximo. Barrido canónico Ax-C4N-012 completado: cero novedad.
+
+### Histórico — 2026-07-20 (B-04 cerrado bajo orden VINCULANTE)
 - **B-04 ETL LeanIX ENTREGADO contra fixture** (DERIVACIÓN VINCULANTE `reforma_loop_20260720`, Regla 3). Restante NO-gateado en el constructor: **B-03 API async** (precondición = load-test corporativo que demuestre urgencia de concurrencia — sin él es optimización de fe, sigue gateado a demanda real) y **B-06 reabrir** sólo si el escalamiento lo exige. El SSO real de LeanIX (**B-04b**) queda gateado con `waits_on`+`recheck_by:2026-08-03` (caduca, Regla 1). **Próxima palanca de PRODUCTO no-gateada candidata**: enchufar el ETL LeanIX al **camino multi-hoja/boundary** para inventarios grandes (hoy emite 1 hoja; un inventario real desborda), o un **demo en frío end-to-end** que encadene los dos ingresos (drawio crudo Y fixture LeanIX) → C4+ISO 7200 → nota Obsidian, evidenciando DoD-en-frío del viaje V1 con AMBAS fuentes. Elegir por valor al despertar; NO otro ciclo docs-only (Regla 3). Barrido canónico de votos (Ax-C4N-012) sólo si S3/M4 fail-closed marca novedad real.
 
 ### (histórico) B-05 cerrado 2026-07-19T20:xx — PRODUCTO, no HOLD
