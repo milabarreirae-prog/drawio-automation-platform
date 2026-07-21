@@ -15,7 +15,6 @@ actualizado: 2026-07-19 (B-05 PRODUCTO — pivote por decreto de la fundadora)
 |----|-------|---------|----------|
 | B-03 | **API async** (`httpx.AsyncClient` para LLM; endpoints async) | Escalamiento corporativo; validar con load-test, no de fe | L |
 | B-06 | `wiki/REQUERIMIENTOS_v1.md` (RF/RNF trazados) si el escalamiento corporativo lo exige | Completar GENESIS; hoy los docs de diseño cubren la mayor parte | S |
-| **B-12** | **Agregar `ruff check` como gate 3 en `.githooks/pre-push`** | **NO-GATEADO, accionable YA.** Hoy el hook corre pytest + gitleaks pero NO ruff → por ahí se coló el N802 de `1a62db6` (commit que afirmaba "0 regresión" con su propio linter en rojo). Un gate que no corre el linter no puede atrapar deriva de estilo. Rojo-es-rojo obligatorio antes de commitear (C2). | S |
 | **B-13** | **Multi-hoja REAL para inventarios grandes** (hoy sólo condicional en escala) | **NO-GATEADO.** `_decompose` ya funciona y la jerarquía LeanIX ya lo alimenta, pero `fit_page` ajusta la página al contenido 1:1 → `_scale_only` nunca baja de `_MIN_SCALE`, así que un inventario de 500 apps sale en UNA hoja ilegible. Falta el criterio de división por CARDINALIDAD (p.ej. dividir si nodos > umbral o si hay ≥N boundaries declarados), no sólo por escala. Cierra de verdad "un inventario real desborda". | M |
 
 ### 🔒 Gates vivos (Regla 1 reforma_loop_20260720: caducan — `waits_on` + `recheck_by`)
@@ -23,7 +22,7 @@ actualizado: 2026-07-19 (B-05 PRODUCTO — pivote por decreto de la fundadora)
 ## 🟡 EN CURSO
 *(vacío)*
 
-**Nota**: B-06 completado en ciclo 2026-07-18, Ax-C4N-020 destilado (especificación trazable como unidad)
+**Nota**: B-06 completado en ciclo 2026-07-18, Ax-C4N-020 destilado (especificación trazable como unidad); B-12 VERIFICADO en ciclo 2026-07-21, Ax-C4N-027 destilado (gates toolchain, fail-closed rojo-es-rojo)
 
 ## ⏭️ PRÓXIMO CICLO
 ### 2026-07-21T16:00 — G-11 CORRECCIÓN DE HONESTIDAD DE ESTADO + cierre real del refinement B-04
