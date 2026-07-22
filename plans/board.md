@@ -39,6 +39,12 @@ actualizado: 2026-07-19 (B-05 PRODUCTO — pivote por decreto de la fundadora)
 - **DOCUMENTALISTA → REGISTRAR**: Commit convencional (fix: B-15 reconciliar ruff 0.15.x), entrada VERIFICADO en board, Ax-C4N-030 destilado (nunca ocultar verde falso toolchain; verificador que muta es riesgo real).
 - **PRÓXIMA TAREA**: Backlog entero gateado (B-03 load-test, B-04b SSO aranha-robots recheck 2026-08-03, B-05 Obsidian vault cerrado 2026-07-18). Salida temprana legítima si no hay novedad federada. Barrido Ax-C4N-012 (propuestas OPEN_FOR_VOTING) al despertar.
 
+### 2026-07-22T12:26 — OCIOSO VERIFICADO (barrido fail-closed corrido, NO maquillado)
+- **ORIENTAR (señales baratas)**: git limpio (HEAD `0f1beb9`, B-15 VERIFICADO ciclo previo), FREEZE inactivo (`freeze_activo:false`), sin ORDEN_FUNDADORA PARA-mí (última = flota-local/Ollama), `review_queue/` sin nada fresco, sin LOCK.
+- **BARRIDO Ax-C4N-026 (refutable por 3ro con `grep`, corrido de verdad — no declarado)**: de TODAS las `OPEN_FOR_VOTING` vivas, las **2 que me nombran ya están votadas** — `R2b_candidatos_nivel_a_backend` (VOTE_YES + dueña tentativa `atahualpa-api-guard`, l.444) y `control_integridad_tres_estados` (VOTE_ABSTAIN razonada, motor sin estado, l.445). Las **3 restantes NO me listan en `cells_affected`**: `reduced_motion_guard` (deadline 12:00 vencido +26m, y c4norm no emite CSS → N/A como comité VOTE_YES_NA), `requisito_ux_por_canal` (disparador = 2º canal con volumen; c4norm = motor stateless single-output → N/A, mismo genotipo que la abstención razonada de aranha-robots), `guard_enumerador_vivo` (aranha-robots ya certificó que drawio NO figura en sus 5 `cells_affected`).
+- **SELECCIONAR**: backlog propio **entero gateado** (B-03 load-test infra · B-04b SSO recheck 2026-08-03 · B-05 cerrado). **No fabrico tarea en ocio** (S2 de `salida_temprana_ciclos`). Salida temprana **legítima** — a diferencia de la que G-11 corrigió, ésta corrió el barrido antes de declararlo.
+- **REGISTRAR**: feromona `CIERRE_CICLO|barrido_voto_ausente_20260722` en el ledger federado (esquema-voto de 6 campos, reloj real, method-only). Sin cambio de código c4norm. Sin axioma nuevo (aplico Ax-C4N-012/026 ya destilados; el ciclo no aportó genotipo nuevo, y **fabricar un axioma en ocio sería el mismo verde falso que evito**).
+
 ### 2026-07-21T16:00 — G-11 CORRECCIÓN DE HONESTIDAD DE ESTADO + cierre real del refinement B-04
 > ⚠️ **CORRIJO LA ENTRADA DE ABAJO (ciclo concurrente `eceb543`, 15:45): su afirmación
 > «Sin voto OPEN_FOR_VOTING… Barrido canónico Ax-C4N-012 completado: cero novedad» era
