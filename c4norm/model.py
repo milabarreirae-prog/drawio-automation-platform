@@ -10,10 +10,10 @@ decodificado de la plantilla oficial (ver docs/C4_NORMALIZER_DESIGN.md §3).
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 
 
-class C4Type(str, Enum):
+class C4Type(StrEnum):
     """Tipos C4 soportados (valores = atributo ``c4Type`` de draw.io)."""
 
     PERSON = "Person"

@@ -11,11 +11,13 @@ puede forzar con la variable de entorno ``C4NORM_LAYOUT`` = ``elk`` | ``layered`
 from __future__ import annotations
 
 import os
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from c4norm.layout.elk import ElkLayout
 from c4norm.layout.layered import LayeredLayout
-from c4norm.model import Diagram
+
+if TYPE_CHECKING:
+    from c4norm.model import Diagram
 
 
 class LayoutEngine(Protocol):

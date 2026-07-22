@@ -160,7 +160,6 @@ def test_llm_classifier_network_error_raises_valueerror() -> None:
     clf = LLMClassifier(chat=bad_chat)
     # Necesitamos que chat sea la función de red, no el chat inyectado interno.
     # Sustituimos _openai_chat directamente para simular el path de producción.
-    d = Diagram(nodes=[_node("a")])
     with pytest.raises((ValueError, httpx.RequestError)):
         clf._openai_chat("test")  # type: ignore[attr-defined]
 
@@ -176,11 +175,10 @@ def test_vision_extractor_network_error_raises_valueerror() -> None:
     # Monkeypatch httpx.post para lanzar ConnectError
     import unittest.mock as mock
 
-    _PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 50
+    png_bytes = b"\x89PNG\r\n\x1a\n" + b"\x00" * 50
 
-    with mock.patch("httpx.post", side_effect=httpx.ConnectError("refused")):
-        with pytest.raises(ValueError, match="error de red"):
-            ext._vision_chat(_PNG, "test")  # type: ignore[attr-defined]
+    with mock.patch("httpx.post", side_effect=httpx.ConnectError("refused")), pytest.raises(ValueError, match="error de red"):
+        ext._vision_chat(png_bytes, "test")  # type: ignore[attr-defined]
 
 
 # =============================================================================
