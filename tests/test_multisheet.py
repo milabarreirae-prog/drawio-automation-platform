@@ -76,3 +76,49 @@ def test_no_split_without_two_boundaries(monkeypatch: pytest.MonkeyPatch) -> Non
     result = emit_c4(d, c4_level=2)
     assert result.sheets == 1  # un solo boundary: no hay por qué descomponer
     assert result.overflow is True  # pero sí está marcado como desbordado
+
+
+def _large_hierarchical(n_per_boundary: int) -> Diagram:
+    """Inventario jerárquico grande: 2 boundaries DEPLOYMENT_NODE con N contenedores
+    cada uno, más una persona de nivel superior. Total nodos = 2 + 2*N + 1."""
+    nodes = [
+        Node(id="user", c4_type=C4Type.PERSON, c4_name="Usuario"),
+        Node(id="siteA", c4_type=C4Type.DEPLOYMENT_NODE, c4_name="Sitio A"),
+        Node(id="siteB", c4_type=C4Type.DEPLOYMENT_NODE, c4_name="Sitio B"),
+    ]
+    for i in range(n_per_boundary):
+        nodes.append(Node(id=f"a{i}", c4_type=C4Type.CONTAINER, c4_name=f"App A{i}", parent="siteA"))
+    for i in range(n_per_boundary):
+        nodes.append(Node(id=f"b{i}", c4_type=C4Type.CONTAINER, c4_name=f"App B{i}", parent="siteB"))
+    return Diagram(name="Inventario", nodes=nodes)
+
+
+def test_large_hierarchical_inventory_splits_by_cardinality() -> None:
+    d = _large_hierarchical(25)  # 53 nodos > 40, 2 boundaries
+    result = emit_c4(d, c4_level=2)
+    assert result.sheets == 3
+    root = etree.fromstring(result.xml.encode("utf-8"))
+    assert len(root.findall("diagram")) == 3
+
+
+def test_small_hierarchical_inventory_stays_one_sheet() -> None:
+    d = _large_hierarchical(3)  # 9 nodos < 40, 2 boundaries
+    result = emit_c4(d, c4_level=2)
+    assert result.sheets == 1
+
+
+def test_large_flat_inventory_flags_overflow_without_splitting() -> None:
+    nodes = [Node(id="user", c4_type=C4Type.PERSON, c4_name="Usuario")]
+    for i in range(45):
+        nodes.append(Node(id=f"c{i}", c4_type=C4Type.CONTAINER, c4_name=f"App {i}"))
+    d = Diagram(name="Inventario plano", nodes=nodes)
+    result = emit_c4(d, c4_level=2)
+    assert result.sheets == 1
+    assert result.overflow is True
+
+
+def test_cardinality_threshold_is_tunable(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(emit_mod, "_MAX_NODES_PER_SHEET", 4)
+    d = _large_hierarchical(3)  # 9 nodos > 4, 2 boundaries
+    result = emit_c4(d, c4_level=2)
+    assert result.sheets == 3
