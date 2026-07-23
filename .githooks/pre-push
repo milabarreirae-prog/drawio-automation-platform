@@ -18,17 +18,107 @@
 
 # Sin `set -e`: queremos capturar el rc de cada gate y decidir explícitamente.
 
-# Gate 1: pytest (lógica + tests)
-echo "[pre-push gate] 1/3 Corriendo la suite: python -m pytest tests -q"
-python -m pytest tests -q
-rc_pytest=$?
+# --- Chequeo fail-closed de toolchain (B-11, ampliado por B-15) ---
+# Corre ANTES de cualquier gate. B-15 amplió qué depende de este chequeo: el
+# gate 1 (resumen passed/failed/skipped + log en docs/qa/suite_history.log) ahora
+# necesita `date` y `mktemp`, además de `grep`/`xargs`/`git` que ya usaba el gate 2.
+# Si estas utilidades faltaran (PATH roto, checkout mínimo, stub de la Store), un
+# gate que las necesita y sigue de largo daría "verde" sin haber hecho su trabajo =
+# verde-por-omisión (fail-open silencioso). Por C1 estricto el degradado debe ser
+# ROJO. Escape consciente: GATE_ALLOW_DEGRADED=1 deja una advertencia DISTINTA
+# (nunca silencio) y degrada cada gate afectado a su conducta mínima anterior.
+missing_tools=""
+for tool in grep xargs git date mktemp; do
+    command -v "$tool" >/dev/null 2>&1 || missing_tools="$missing_tools $tool"
+done
 
-if [ "$rc_pytest" -ne 0 ]; then
-    echo "[pre-push gate] ROJO: pytest falló (rc=$rc_pytest). Push ABORTADO (C2)." >&2
-    exit 1
+if [ -n "$missing_tools" ]; then
+    if [ "${GATE_ALLOW_DEGRADED:-0}" = "1" ]; then
+        echo "[pre-push gate] ⚠ DEGRADADO CONSCIENTE: toolchain fail-closed ausente ($missing_tools)." >&2
+        echo "  Gate 1 (pytest) degrada a SOLO exit-code: sin resumen passed/skipped, sin log en docs/qa/suite_history.log (necesita date/mktemp)." >&2
+        echo "  Gate 2 (secretos) OMITIDO por GATE_ALLOW_DEGRADED=1 — el escaneo de secretos NO corrió." >&2
+    else
+        echo "[pre-push gate] ROJO: toolchain fail-closed ausente ($missing_tools). Push ABORTADO (C1)." >&2
+        echo "  Gate 1 necesita date/mktemp para el resumen VERDE PLENO/PARCIAL y su log; gate 2 necesita grep/xargs/git." >&2
+        echo "  Sin estas utilidades los gates no pueden hacer su trabajo; degradar en silencio sería verde-por-omisión." >&2
+        echo "  Instálalas, o si es deliberado: GATE_ALLOW_DEGRADED=1 git push (deja rastro, nunca silencio)." >&2
+        exit 1
+    fi
 fi
 
-echo "[pre-push gate] ✓ pytest verde."
+# Gate 1: pytest (lógica + tests)
+echo "[pre-push gate] 1/3 Corriendo la suite: python -m pytest tests -q"
+
+# SKIP_BASELINE (B-15): skips ELK/Node conocidos y honestos — esta máquina no
+# siempre tiene Node/elkjs instalado, y esos 4 tests se saltan a sí mismos en
+# runtime cuando lo detectan ausente. Sitios declarados:
+#   tests/test_audit_fixes2.py:70, :88, :108 (elk.available() -> pytest.skip)
+#   tests/test_c4norm.py:216 (ElkLayout().available() -> pytest.skip)
+# Causa: ELK/Node elkjs ausente en el entorno. ultimo_verde_pleno_conocido=2026-07-23
+# (244 passed, 0 skipped, medido en esta máquina con ELK presente).
+# LIMITACIÓN CONOCIDA: el baseline es por CONTEO de skips, no por identidad de
+# test — no distingue "los mismos 4 ELK de siempre" de "4 skips distintos que
+# aparecieron por otra causa y por casualidad suman el mismo número".
+SKIP_BASELINE=4
+
+if [ -n "$missing_tools" ]; then
+    # Degradado consciente (ya advertido arriba): sin date/mktemp no podemos
+    # parsear el resumen ni loggear en suite_history.log. Conducta ORIGINAL
+    # (pre-B-15): solo el exit code decide.
+    python -m pytest tests -q
+    rc_pytest=$?
+
+    if [ "$rc_pytest" -ne 0 ]; then
+        echo "[pre-push gate] ROJO: pytest falló (rc=$rc_pytest). Push ABORTADO (C2)." >&2
+        exit 1
+    fi
+    echo "[pre-push gate] ✓ pytest verde (rc=0) — DEGRADADO: sin resumen passed/skipped ni log (toolchain ausente)." >&2
+else
+    tmp=$(mktemp)
+    trap 'rm -f "$tmp"' EXIT
+    python -m pytest tests -q >"$tmp" 2>&1
+    rc_pytest=$?
+    cat "$tmp"
+
+    if [ "$rc_pytest" -ne 0 ]; then
+        echo "[pre-push gate] ROJO: pytest falló (rc=$rc_pytest). Push ABORTADO (C2)." >&2
+        exit 1
+    fi
+
+    n_passed=$(grep -Eo '[0-9]+ passed' "$tmp" | tail -1 | grep -Eo '[0-9]+')
+    n_failed=$(grep -Eo '[0-9]+ failed' "$tmp" | tail -1 | grep -Eo '[0-9]+')
+    n_skipped=$(grep -Eo '[0-9]+ skipped' "$tmp" | tail -1 | grep -Eo '[0-9]+')
+    n_passed=${n_passed:-0}
+    n_failed=${n_failed:-0}
+    n_skipped=${n_skipped:-0}
+
+    log_dir="docs/qa"
+    log_file="$log_dir/suite_history.log"
+    mkdir -p "$log_dir"
+    if [ ! -f "$log_file" ]; then
+        {
+            echo "# suite_history.log — historial de veredictos del gate 1 (pytest) en pre-push (B-15)."
+            echo "# Formato (una línea por corrida que llega a veredicto, incluidas las ROJO):"
+            echo "#   YYYY-MM-DDTHH:MM:SSZ|passed=N|failed=N|skipped=N|VERDE_PLENO|VERDE_PARCIAL|ROJO"
+            echo "# Por qué existe (R2 edad_del_verde): la edad del último verde real es dato de"
+            echo "# archivo, no arqueología git — no se editan ni borran líneas manualmente."
+        } >"$log_file"
+    fi
+    ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+    if [ "$n_skipped" -eq 0 ]; then
+        echo "[pre-push gate] ✓ pytest verde pleno ($n_passed passed, 0 skipped)."
+        echo "$ts|passed=$n_passed|failed=$n_failed|skipped=$n_skipped|VERDE_PLENO" >>"$log_file"
+    elif [ "$n_skipped" -le "$SKIP_BASELINE" ]; then
+        echo "[pre-push gate] ⚠ VERDE PARCIAL: $n_passed passed, $n_skipped skipped (baseline conocido: $SKIP_BASELINE ELK). El verde NO cubre lo saltado." >&2
+        echo "$ts|passed=$n_passed|failed=$n_failed|skipped=$n_skipped|VERDE_PARCIAL" >>"$log_file"
+    else
+        echo "[pre-push gate] ROJO: $n_skipped skipped supera el baseline declarado ($SKIP_BASELINE). Push ABORTADO." >&2
+        echo "  Cobertura dormida no declarada: o arregla el entorno (ELK/Node) o actualiza SKIP_BASELINE en este hook con revisión humana." >&2
+        echo "$ts|passed=$n_passed|failed=$n_failed|skipped=$n_skipped|ROJO" >>"$log_file"
+        exit 1
+    fi
+fi
 
 # Gate 2: grep sobre patrones de secreto comunes en commits pendientes (S1 de secret_scanning_federado).
 # Adaptación (Ax-ATA-017): gitleaks busca patrones; grep hace lo mismo.
@@ -36,30 +126,8 @@ echo "[pre-push gate] ✓ pytest verde."
 # de archivos gitignoreados (.env, .aws/credentials, etc.) que no se van a pushear.
 echo "[pre-push gate] 2/3 Escaneando patrones de secreto en cambios staged"
 
-# B-11 (gates_toolchain_fail_closed C1): fail-closed ante toolchain ausente.
-# Simetría con B-08 (allowlist-por-omisión del linter): si grep/xargs/git faltaran
-# (PATH roto, checkout mínimo, stub de la Store), `found_secrets` quedaría vacío y el
-# gate daría "verde" sin haber escaneado NADA = verde-por-omisión (fail-open silencioso).
-# Por C1 estricto el degradado debe ser ROJO. Escape consciente: GATE_ALLOW_DEGRADED=1
-# deja una advertencia DISTINTA (nunca silencio), mismo espíritu que el gate de B-08.
-missing_tools=""
-for tool in grep xargs git; do
-    command -v "$tool" >/dev/null 2>&1 || missing_tools="$missing_tools $tool"
-done
-if [ -n "$missing_tools" ]; then
-    if [ "${GATE_ALLOW_DEGRADED:-0}" = "1" ]; then
-        echo "[pre-push gate] ⚠ DEGRADADO CONSCIENTE: toolchain de escaneo ausente ($missing_tools)." >&2
-        echo "  Gate 2 OMITIDO por GATE_ALLOW_DEGRADED=1 — el escaneo de secretos NO corrió." >&2
-    else
-        echo "[pre-push gate] ROJO: toolchain de escaneo de secretos ausente ($missing_tools). Push ABORTADO (C1)." >&2
-        echo "  Sin estas utilidades el gate no puede escanear; degradar en silencio sería verde-por-omisión." >&2
-        echo "  Instálalas, o si es deliberado: GATE_ALLOW_DEGRADED=1 git push (deja rastro, nunca silencio)." >&2
-        exit 1
-    fi
-fi
-
-# Sólo escaneamos si el toolchain está completo (si llegamos aquí con tools ausentes,
-# fue por escape consciente y saltamos el escaneo, ya advertido arriba).
+# Sólo escaneamos si el toolchain está completo (si missing_tools no está vacío,
+# fue por escape consciente GATE_ALLOW_DEGRADED=1, ya advertido arriba, y saltamos).
 if [ -z "$missing_tools" ]; then
 
 # Patrones de secreto a detectar (similares a los que gitleaks busca).
