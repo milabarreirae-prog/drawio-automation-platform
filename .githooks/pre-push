@@ -162,6 +162,11 @@ if [ -z "$staged_files" ]; then
     staged_files=$(git ls-files 2>/dev/null)
 fi
 
+# Excluir docs/ y plans/ del escaneo (artefactos documentales, pueden contener ejemplos de patrones)
+if [ -n "$staged_files" ]; then
+    staged_files=$(echo "$staged_files" | grep -v '^docs/\|^plans/')
+fi
+
 # Escanear en busca de patrones
 found_secrets=""
 if [ -n "$staged_files" ]; then
