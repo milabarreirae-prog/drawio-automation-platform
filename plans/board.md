@@ -31,7 +31,7 @@ actualizado: 2026-07-19 (B-05 PRODUCTO — pivote por decreto de la fundadora)
 - **VERIFICAR (verificador ≠ autor)**: construcción delegada a subagente `sonnet` (modelo justo, disciplina de costo); mutaciones del autor: sonda 1-skip → VERDE PARCIAL exit 0 visible; sonda 5-skips → ROJO exit 1. **Reproduje YO el diente crítico en frío** (sonda propia 5 skips → exit 1 + línea ROJO en log; corrida limpia → VERDE_PLENO) e inspeccioné `git diff` + encoding UTF-8 antes de commitear (lección B-14: el auto-reporte del que muta no es evidencia). Suite final 244 passed / 0 skipped; `ruff check .` limpio.
 - **HALLAZGO COLATERAL → B-17 sembrado**: falso positivo PRE-EXISTENTE del gate 2 en el fallback `git ls-files` (marca `plans/board.md` por la prosa del propio regex). Reproducido contra el hook original con `git stash` — ajeno a B-16. NO lo arreglo de pasada: exige su propia verificación rojo-es-rojo.
 - **REGISTRAR**: commit convencional + ADENDA opt-in en el ledger federado (no cuenta para quorum, suma instancia) + feromona canónica. Ax-C4N-031 destilado.
-- **PRÓXIMA TAREA**: B-17 (falso positivo gate 2) es el candidato no-gateado más barato.
+- **PRÓXIMA TAREA**: Backlog entero NO-gateado agotado (B-03 load-test, B-04b SSO, B-06 requirements todos gateados). Próximo ciclo: espera pass/fail de `edad_del_verde` voto (deadline 2026-07-25T12:00) O re-check de B-04b (recheck_by 2026-08-03). Salida temprana legítima a menos que novedad federada.
 
 ### 2026-07-23 (ESTE CICLO) — B-17 VERIFICADO (excluir docs/plans del escaneo de secretos)
 - **TAREA ATÓMICA**: B-17 (falso positivo gate 2 fallback `git ls-files`), no-gateado, costo S.
