@@ -50,6 +50,31 @@ def test_enriches_existing_nodes() -> None:
     assert res.enriched_nodes == 1
 
 
+def test_enrich_does_not_invent_nodes() -> None:
+    """Diente de desacople (genotipo `control_desacoplado_de_su_objeto`, R2).
+
+    El observable que decide es ESTRUCTURAL e independiente de la opinión del LLM:
+    ``by_id = {n.id: n for n in diagram.nodes}`` (enrich.py) es la lista de ids
+    REALES del diagrama dado; una entrada ``nodes`` con id ausente se descarta
+    (``by_id.get(nid) is None -> continue``), pase lo que pase en el JSON del modelo.
+    Gemelo del ``test_does_not_invent_nodes`` de classify.py; antes sólo el
+    clasificador tenía este diente y el enriquecedor no, pese a compartir la forma
+    del guard. Si se quita el guard, un nodo fantasma se colaría: rojo-es-rojo.
+    """
+    d = _sample()
+    antes = {n.id for n in d.nodes}
+    res = Enricher(chat=_chat({
+        "nodes": {
+            "api": {"c4Description": "Real (por validar)"},
+            "ghost": {"c4Name": "Inventado", "c4Description": "No existe en el diagrama"},
+        },
+    })).enrich(d, 3)
+    assert d.node_by_id("ghost") is None            # el fantasma NUNCA se crea
+    assert {n.id for n in d.nodes} == antes          # cero nodos añadidos por el LLM
+    assert d.node_by_id("api").c4_description == "Real (por validar)"
+    assert res.enriched_nodes == 1                   # sólo el nodo real contó
+
+
 def test_merges_duplicates_and_repoints_edges() -> None:
     d = _sample()
     res = Enricher(chat=_chat({"merges": [["api", "api_dup"]]})).enrich(d, 3)
