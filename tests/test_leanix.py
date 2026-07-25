@@ -52,11 +52,32 @@ def test_parse_factsheets_counts_all_nodes() -> None:
     assert "provider-gateway" in ids
 
 
-def test_parse_factsheets_empty_response_no_crash() -> None:
-    assert parse_factsheets({}) == []
-    assert parse_factsheets({"data": {}}) == []
-    assert parse_factsheets({"data": {"allFactSheets": {}}}) == []
-    assert parse_factsheets({"data": {"allFactSheets": {"edges": None}}}) == []
+def test_parse_factsheets_malformed_response_raises() -> None:
+    """Diente R1 (gemelo_de_error): una respuesta con FORMA inesperada — falta
+    'data'/'allFactSheets'/'edges', o trae 'errors' de GraphQL — es un fallo del
+    productor (token vencido, endpoint equivocado, error GraphQL con 200 OK) y NUNCA
+    debe colapsar al mismo resultado que un inventario genuinamente vacío. Antes de
+    este diente, las cuatro formas de abajo devolvían ``[]`` en silencio (patrón
+    fail-safe original) — indistinguibles de un tenant sin FactSheets."""
+    with pytest.raises(ValueError):
+        parse_factsheets({})
+    with pytest.raises(ValueError):
+        parse_factsheets({"data": {}})
+    with pytest.raises(ValueError):
+        parse_factsheets({"data": {"allFactSheets": {}}})
+    with pytest.raises(ValueError):
+        parse_factsheets({"data": {"allFactSheets": {"edges": None}}})
+    with pytest.raises(ValueError):
+        parse_factsheets({"errors": [{"message": "Unauthorized"}]})
+
+
+def test_parse_factsheets_genuinely_empty_inventory_is_not_an_error() -> None:
+    """El vacío se afirma: forma bien formada con ``edges: []`` SÍ es un inventario
+    vacío legítimo (no un fallo de transporte) y debe seguir devolviendo ``[]``."""
+    assert parse_factsheets({"data": {"allFactSheets": {"edges": []}}}) == []
+    # Registros individuales corruptos DENTRO de una respuesta bien formada se
+    # descartan sin inventar un id (Ax-C4N-001): sigue siendo "por validar" en
+    # inventory_to_diagram, no un fallo estructural del transporte completo.
     assert parse_factsheets({"data": {"allFactSheets": {"edges": [{"node": None}, {}]}}}) == []
 
 

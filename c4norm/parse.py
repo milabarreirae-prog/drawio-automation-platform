@@ -333,11 +333,33 @@ def repair_dangling_parents(diagram: Diagram) -> int:
 
 
 def parse_drawio(xml_content: str) -> list[Diagram]:
-    """Parsea XML Draw.io (mxfile o mxGraphModel pelado) a modelos lógicos."""
+    """Parsea XML Draw.io (mxfile o mxGraphModel pelado) a modelos lógicos.
+
+    ``recover=True`` tolera cosas benignas del mundo real (namespaces con prefijo,
+    entidades sueltas de un round-trip de Confluence, etc.), pero libxml2 usa el
+    MISMO modo de recuperación para truncamiento/corrupción real: un ``.drawio``
+    cortado a la mitad (descarga interrumpida, disco lleno, merge mal resuelto)
+    puede "recuperarse" en un árbol parcial que descarta justo los nodos que
+    venían después del corte — indistinguible de un diagrama genuinamente vacío
+    (Ax-C4N-001 / R1 "el vacío se afirma": ninguna falla del productor puede
+    aterrizar en la misma vista que un vacío real). Por eso se revisa
+    ``parser.error_log``: si libxml2 tuvo que recuperarse de un error real de
+    sintaxis, se rechaza el documento en vez de emitir en silencio lo poco que
+    sobrevivió al corte.
+    """
     parser = etree.XMLParser(recover=True, resolve_entities=False, no_network=True, load_dtd=False)
     root = etree.fromstring(xml_content.encode("utf-8"), parser=parser)
     if root is None:
         raise ValueError("XML vacío o no parseable")
+    if len(parser.error_log) > 0:
+        first = parser.error_log[0]
+        raise ValueError(
+            f"XML Draw.io corrupto o truncado: {len(parser.error_log)} error(es) de "
+            f"sintaxis recuperados por el parser (p.ej. línea {first.line}: {first.message}). "
+            "No se normaliza un documento que el parser tuvo que reconstruir a medias: "
+            "podría estar descartando contenido real de forma indistinguible de un "
+            "diagrama vacío."
+        )
     _strip_namespaces(root)
 
     diagrams: list[Diagram] = []

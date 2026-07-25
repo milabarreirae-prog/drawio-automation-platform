@@ -76,16 +76,39 @@ query AllFactSheets {
 def parse_factsheets(response: dict) -> list[dict]:
     """Extrae la lista de FactSheets (``node``) de una respuesta GraphQL ``allFactSheets``.
 
-    Defensivo con claves ausentes (patrón fail-safe del repo): cualquier forma
-    incompleta o vacía devuelve ``[]`` en vez de lanzar.
+    R1 (el vacío se afirma): un ``allFactSheets.edges`` bien formado pero vacío
+    (``[]``) es un inventario genuinamente vacío y SÍ devuelve ``[]`` en silencio.
+    Pero una respuesta con la FORMA equivocada (sin ``data``, error GraphQL en
+    ``errors``, ``allFactSheets`` o ``edges`` ausentes/con tipo incorrecto) es un
+    FALLO del transporte/productor (token vencido, endpoint equivocado, GraphQL
+    devolvió error con 200 OK) — antes colapsaba al mismo ``[]`` que el inventario
+    vacío real (patrón fail-safe original del repo); ahora se distingue con una
+    excepción, porque ninguna falla del productor debe aterrizar en la misma vista
+    que un vacío legítimo.
+
+    Registros individuales corruptos DENTRO de un ``edges`` ya bien formado (p.ej.
+    ``{"node": None}``) sí se descartan en silencio: son un caso "por validar" de
+    dato individual, no un fallo estructural de la respuesta completa.
     """
-    data = response.get("data") if isinstance(response, dict) else None
-    all_fs = data.get("allFactSheets") if isinstance(data, dict) else None
-    edges = all_fs.get("edges") if isinstance(all_fs, dict) else None
-    if not isinstance(edges, list):
-        return []
+    if not isinstance(response, dict):
+        raise ValueError(f"Respuesta LeanIX no es un objeto JSON: {type(response).__name__}")
+    if response.get("errors"):
+        raise ValueError(f"LeanIX devolvió error(es) GraphQL: {response['errors']}")
+    if "data" not in response or not isinstance(response["data"], dict):
+        raise ValueError("Respuesta LeanIX con forma inesperada: falta 'data' (fallo del productor)")
+    data = response["data"]
+    if "allFactSheets" not in data or not isinstance(data["allFactSheets"], dict):
+        raise ValueError(
+            "Respuesta LeanIX con forma inesperada: falta 'data.allFactSheets' (fallo del productor)"
+        )
+    all_fs = data["allFactSheets"]
+    if "edges" not in all_fs or not isinstance(all_fs["edges"], list):
+        raise ValueError(
+            "Respuesta LeanIX con forma inesperada: falta 'data.allFactSheets.edges' como lista "
+            "(fallo del productor)"
+        )
     out: list[dict] = []
-    for item in edges:
+    for item in all_fs["edges"]:
         if not isinstance(item, dict):
             continue
         node = item.get("node")
