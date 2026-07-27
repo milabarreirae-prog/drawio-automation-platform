@@ -110,6 +110,16 @@ docker build -t drawio-c4-normalizer .
 docker run --rm -p 8000:8000 drawio-c4-normalizer
 ```
 
+## Reutilización entre células
+
+`c4norm` no es un servicio centralizable (Nivel B) del enjambre — es un motor sin
+estado, no un candidato a patrón `voz_core`. Sí ofrece dos patrones **Nivel A**
+(método puro, sin acoplamiento de dominio) citables/adaptables por otras células:
+el clasificador con IA *fail-closed* (`c4norm/classify.py::LLMClassifier`) y el
+proceso externo persistente vía stdin (`c4norm/layout/elk.py::_PersistentElkProcess`).
+Postura y detalle en
+[`ARCHITECTURE.md`](ARCHITECTURE.md#reutilización-entre-células-nivel-a).
+
 ## Licencia
 
 Ver [`LICENSE`](LICENSE) y [`NOTICE`](NOTICE).

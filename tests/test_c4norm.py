@@ -86,10 +86,33 @@ class TestClassifyIA1:
     def test_metadata_goes_to_description_not_name(self) -> None:
         node = self.diagram.node_by_id("200")
         assert node.c4_name == "DNS / GSLB"
-        assert "Confianza" in node.c4_description
+        # 'Redirección … no validada' es la descripción real del autor.
+        assert "no validada" in node.c4_description
+
+    def test_governance_metadata_extracted_to_structured_fields(self) -> None:
+        # Confianza / Estado CMDB del autor van a su capa, NO a la descripción.
+        node = self.diagram.node_by_id("200")
+        assert node.confidence == "Baja"
+        assert node.cmdb_status == "Pendiente"
+        assert "Confianza" not in node.c4_description
+        assert "CMDB" not in node.c4_description
 
 
 class TestEmit:
+    def test_governance_badge_rendered_in_node_label(self) -> None:
+        xml, _ = normalize(IA1, c4_level=2)
+        root = etree.fromstring(xml.encode("utf-8"))
+        labels = {o.get("id"): o.get("label", "") for o in root.iter("object")}
+        # El badge muestra la gobernanza declarada por el autor, no inventada.
+        assert "Confianza: Baja" in labels["200"]
+        assert "CMDB: Pendiente" in labels["200"]
+
+    def test_no_badge_when_author_declared_none(self) -> None:
+        # IA2 no trae metadata de gobernanza → ningún nodo debe mostrar badge.
+        xml, _ = normalize(IA2, c4_level=2)
+        assert "Confianza:" not in xml
+        assert "CMDB:" not in xml
+
     def test_ia2_emits_well_formed_c4(self) -> None:
         xml, report = normalize(IA2, c4_level=2)
         root = etree.fromstring(xml.encode("utf-8"))  # no debe lanzar

@@ -38,6 +38,7 @@ from c4norm.sheet import (
 
 _BASE_FONT = 12
 _MIN_SCALE = 0.45
+_MAX_NODES_PER_SHEET = 40  # cardinalidad legible por hoja de ingeniería; sobre esto, un inventario con jerarquía declarada (≥2 boundaries) se descompone
 
 
 @dataclass
@@ -219,13 +220,32 @@ def _decompose(diagram: Diagram) -> list[tuple[str, Diagram]]:
 # =============================================================================
 
 
+def _governance_badge(node: Node, *, align: str = "center") -> str:
+    """Franja discreta con la gobernanza declarada por el autor (confianza / estado CMDB).
+
+    Devuelve cadena vacía si el autor no declaró ninguna: el motor no inventa badges.
+    El texto es literal (no placeholder) y lo escapa ``_attr`` al serializar.
+    """
+    chips = []
+    if node.confidence:
+        chips.append(f"Confianza: {node.confidence}")
+    if node.cmdb_status:
+        chips.append(f"CMDB: {node.cmdb_status}")
+    if not chips:
+        return ""
+    return (
+        f'<div style="text-align:{align};font-size:9px;color:#666666;margin-top:2px">'
+        f'{" · ".join(chips)}</div>'
+    )
+
+
 def _node_label(node: Node) -> str:
     t = node.c4_type
     if t is C4Type.DEPLOYMENT_NODE:
         label = '<div style="text-align:left">%c4Name%</div><div style="text-align:left">[%c4Type%]</div>'
         if node.c4_description:
             label += '<div style="text-align:left">%c4Description%</div>'
-        return label
+        return label + _governance_badge(node, align="left")
     parts = ["<b>%c4Name%</b>"]
     if t is C4Type.DATABASE:
         parts.append("<div>[Container: %c4Technology%]</div>" if node.c4_technology else "<div>[Database]</div>")
@@ -235,6 +255,7 @@ def _node_label(node: Node) -> str:
         parts.append("<div>[%c4Type%]</div>")
     if node.c4_description:
         parts.append("<br><div>%c4Description%</div>")
+    parts.append(_governance_badge(node))
     return "".join(parts)
 
 
@@ -269,7 +290,8 @@ def emit_c4(
     cw, ch = _node_bbox(diagram)
     _, _, area, _, _ = fit_page(cw, ch)
     boundaries = [n for n in diagram.nodes if not n.parent and n.c4_type is C4Type.DEPLOYMENT_NODE]
-    needs_split = _scale_only(diagram, area) < _MIN_SCALE and len(boundaries) >= 2
+    too_many = len(diagram.nodes) > _MAX_NODES_PER_SHEET
+    needs_split = len(boundaries) >= 2 and (_scale_only(diagram, area) < _MIN_SCALE or too_many)
 
     if not needs_split:
         block, scale, overflow, fmt, orientation = _emit_page(
@@ -287,7 +309,7 @@ def emit_c4(
         return EmitResult(
             xml=xml,
             scale=scale_string(scale),
-            overflow=overflow,
+            overflow=overflow or too_many,
             engine=motor,
             sheet=fmt,
             orientation=orientation,

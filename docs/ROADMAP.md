@@ -24,6 +24,21 @@ Normalizar XML crudo de Draw.io (de IA) a **C4 conforme a estándar** para Confl
   `/health`, `/metrics`, con auth opcional y rate limiting).
 - **Contenedor** (Python + Node/elkjs) que sirve la API.
 - **Guía de usuario** (`docs/USER_GUIDE.md`): instalación, CLI, API, Docker, configuración y troubleshooting.
+- **Badge de gobernanza por nodo** (`Confianza`, `Estado CMDB`): extraídos a campos
+  estructurados (`Node.confidence`/`cmdb_status`) y renderizados como franja discreta en
+  la etiqueta; ausente si el autor no lo declaró (B-01a, `plans/board.md`).
+- **Fila de leyenda para los badges** (`legend-governance`): clave "Confianza / CMDB:
+  declarado por el autor" (gris 11px, a juego con la franja del nodo), añadida a la
+  leyenda C4 sólo si algún nodo trae `confidence`/`cmdb_status`; nunca inventada
+  (B-01b, `plans/board.md`).
+- **Reparación de padres colgantes** (`repair_dangling_parents`): un nodo cuyo `parent`
+  referencia un id inexistente se promueve a top-level en vez de desaparecer (el layout
+  no lo posicionaba y draw.io descarta las celdas huérfanas de padre). No inventa
+  contenedor — el dual de «nunca inventar» es «nunca perder» (F-01, `plans/board.md`).
+- **Proceso Node persistente para ELK** (`_PersistentElkProcess`): un solo proceso Node
+  reutilizado entre diagramas en vez de un `subprocess.run` (arranque completo, ~100-400 ms)
+  por cada layout; `elk_runner.js` corre en modo servidor (`readline`) y sobrevive a un grafo
+  inválido devolviendo `{"error": ...}` en vez de morir (B-02, `plans/board.md`).
 
 ## ⏳ Pendiente
 
@@ -32,7 +47,6 @@ Ninguno — el roadmap base del prototipo está completo. ✅
 ## 🔭 Futuro (fuera del prototipo)
 
 - Interop **LeanIX** (ETL GraphQL → modelo lógico → este pipeline).
-- Badges / leyenda de estado (`Confianza`, `Estado CMDB`) en el diagrama.
 - **Rendimiento avanzado** (requiere load-testing para validar):
   - API totalmente **async** (`httpx.AsyncClient`) para que las llamadas LLM no
     consuman un hilo del threadpool durante la espera de red.

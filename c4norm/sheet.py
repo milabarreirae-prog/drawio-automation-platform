@@ -22,6 +22,14 @@ _BASE_PORTRAIT: dict[str, tuple[int, int]] = {
 }
 _ORDER = ["A4", "A3", "A2", "A1", "A0"]
 
+# Formato objetivo de impresión y tope de ancho de página (en apaisado). El motor
+# abraza el contenido 1:1 mientras quepa a lo ancho de este formato; superado el tope,
+# deja de crecer horizontalmente y cede a la escala/multi-hoja (ver fit_page). Sin él,
+# un boundary con decenas de hijos hermanos en fila producía una hoja A0++ correcta
+# pero impresa a escala minúscula.
+_TARGET_FMT = "A2"
+_MAX_PAGE_W = max(_BASE_PORTRAIT[_TARGET_FMT])  # 2339 (A2 apaisado)
+
 # Márgenes del marco (izquierda mayor, por encuadernación), padding y cajetín.
 _M_LEFT, _M_OTHER, _PAD = 40, 25, 24
 _TB_W, _TB_H = 540, 200
@@ -66,14 +74,25 @@ def _nearest_format(page_w: float, page_h: float) -> str:
 
 
 def fit_page(content_w: float, content_h: float) -> tuple[int, int, DrawArea, str, str]:
-    """Página ajustada al contenido (1:1, mínimo blanco).
+    """Página ajustada al contenido (1:1, mínimo blanco) con ancho acotado al formato.
+
+    Abraza el contenido 1:1 mientras quepa a lo ancho del formato objetivo (A2 apaisado).
+    Superado ese tope, la página deja de crecer horizontalmente y el área de dibujo queda
+    más estrecha que el contenido: `_fit` reduce entonces la escala (y, con ≥2 boundaries,
+    el multi-hoja absorbe el resto) en vez de emitir una hoja A0++ impresa minúscula.
 
     Devuelve (page_w, page_h, draw_area, fmt_label, orientation).
     """
     cw, ch = max(1.0, content_w), max(1.0, content_h)
     frame_w = max(cw + 2 * _PAD, _TB_W + 2 * _PAD)
-    frame_h = ch + 2 * _PAD + _TB_H
     page_w = int(_M_LEFT + frame_w + _M_OTHER)
+
+    # Tope de ancho: no seguimos creciendo la hoja a lo ancho más allá del formato objetivo.
+    if page_w > _MAX_PAGE_W:
+        page_w = _MAX_PAGE_W
+        frame_w = page_w - _M_LEFT - _M_OTHER
+
+    frame_h = ch + 2 * _PAD + _TB_H
     page_h = int(_M_OTHER + frame_h + _M_OTHER)
 
     area = DrawArea(x0=_M_LEFT + _PAD, y0=_M_OTHER + _PAD, width=frame_w - 2 * _PAD, height=ch)

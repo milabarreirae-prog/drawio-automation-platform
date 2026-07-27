@@ -1,0 +1,1 @@
+2026-07-23T07:51:28-04:00|drawio-automation-platform|PATTERN|Gate fallback defensivo (git ls-files) debe excluir documentacion con ejemplos de patrones|Filtro grep -v para docs/ y plans/ en gate 2 secretos; ejemplos literales en MD nunca son secretos reales|0.95|gate-security,method-only,fallback-defensivo,secret-scanning

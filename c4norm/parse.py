@@ -311,17 +311,61 @@ def _nearest_node(diagram: Diagram, point: tuple[float, float], threshold: float
     return best
 
 
+def repair_dangling_parents(diagram: Diagram) -> int:
+    """
+    Repara nodos cuyo ``parent`` apunta a un id que no es otro nodo del diagrama
+    (contenedor inexistente, borrado, o mal referenciado por la IA).
+
+    Sin reparar, ese nodo **desaparece**: el layout no lo posiciona (no es top-level
+    ni hijo de un nodo real) y draw.io descarta las celdas cuyo padre no existe. Se
+    promueve a nivel superior (``parent=None``) para que participe del layout y se
+    emita visible; el anclaje posterior (``ground_floating_nodes``) lo coloca en su
+    zona si procede. No inventa contenedor alguno: sólo evita perder el nodo (el dual
+    de «nunca inventar» es «nunca perder»). Devuelve cuántos reparó.
+    """
+    node_ids = {n.id for n in diagram.nodes}
+    repaired = 0
+    for node in diagram.nodes:
+        if node.parent is not None and node.parent not in node_ids:
+            node.parent = None
+            repaired += 1
+    return repaired
+
+
 def parse_drawio(xml_content: str) -> list[Diagram]:
-    """Parsea XML Draw.io (mxfile o mxGraphModel pelado) a modelos lógicos."""
+    """Parsea XML Draw.io (mxfile o mxGraphModel pelado) a modelos lógicos.
+
+    ``recover=True`` tolera cosas benignas del mundo real (namespaces con prefijo,
+    entidades sueltas de un round-trip de Confluence, etc.), pero libxml2 usa el
+    MISMO modo de recuperación para truncamiento/corrupción real: un ``.drawio``
+    cortado a la mitad (descarga interrumpida, disco lleno, merge mal resuelto)
+    puede "recuperarse" en un árbol parcial que descarta justo los nodos que
+    venían después del corte — indistinguible de un diagrama genuinamente vacío
+    (Ax-C4N-001 / R1 "el vacío se afirma": ninguna falla del productor puede
+    aterrizar en la misma vista que un vacío real). Por eso se revisa
+    ``parser.error_log``: si libxml2 tuvo que recuperarse de un error real de
+    sintaxis, se rechaza el documento en vez de emitir en silencio lo poco que
+    sobrevivió al corte.
+    """
     parser = etree.XMLParser(recover=True, resolve_entities=False, no_network=True, load_dtd=False)
     root = etree.fromstring(xml_content.encode("utf-8"), parser=parser)
     if root is None:
         raise ValueError("XML vacío o no parseable")
+    if len(parser.error_log) > 0:
+        first = parser.error_log[0]
+        raise ValueError(
+            f"XML Draw.io corrupto o truncado: {len(parser.error_log)} error(es) de "
+            f"sintaxis recuperados por el parser (p.ej. línea {first.line}: {first.message}). "
+            "No se normaliza un documento que el parser tuvo que reconstruir a medias: "
+            "podría estar descartando contenido real de forma indistinguible de un "
+            "diagrama vacío."
+        )
     _strip_namespaces(root)
 
     diagrams: list[Diagram] = []
     for name, gm in _iter_graph_models(root):
         diagram = _build_diagram(name, gm)
         reconnect_orphan_edges(diagram)
+        repair_dangling_parents(diagram)
         diagrams.append(diagram)
     return diagrams

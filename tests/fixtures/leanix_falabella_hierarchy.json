@@ -1,0 +1,102 @@
+{
+  "data": {
+    "allFactSheets": {
+      "edges": [
+        {
+          "node": {
+            "id": "dc-region-a",
+            "type": "Application",
+            "displayName": "Región A",
+            "description": "FactSheet sintético usado sólo como padre declarado (boundary de agrupación)."
+          }
+        },
+        {
+          "node": {
+            "id": "dc-region-b",
+            "type": "Application",
+            "displayName": "Región B",
+            "description": "FactSheet sintético usado sólo como padre declarado (boundary de agrupación)."
+          }
+        },
+        {
+          "node": {
+            "id": "app-portal-h",
+            "type": "Application",
+            "displayName": "Portal Ventas H",
+            "description": "Aplicación sintética con padre declarado.",
+            "relToParent": {
+              "edges": [
+                { "node": { "factSheet": { "id": "dc-region-a" } } }
+              ]
+            },
+            "relApplicationToITComponent": {
+              "edges": [
+                { "node": { "factSheet": { "id": "itc-shared-h" } } }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "id": "app-pagos-h",
+            "type": "Application",
+            "displayName": "Motor Pagos H",
+            "description": "Aplicación sintética con padre declarado.",
+            "relToParent": {
+              "edges": [
+                { "node": { "factSheet": { "id": "dc-region-a" } } }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "id": "app-reportes-h",
+            "type": "Application",
+            "displayName": "Reportes H",
+            "description": "Aplicación sintética con padre declarado en otra región.",
+            "relToParent": {
+              "edges": [
+                { "node": { "factSheet": { "id": "dc-region-b" } } }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "id": "app-huerfano-h",
+            "type": "Application",
+            "displayName": "App Huérfana H",
+            "description": "Declara un padre que no existe entre los FactSheets conservados.",
+            "relToParent": {
+              "edges": [
+                { "node": { "factSheet": { "id": "dc-region-inexistente" } } }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "id": "app-selfparent-h",
+            "type": "Application",
+            "displayName": "App Self Parent H",
+            "description": "Se declara padre de sí misma; debe ignorarse sin crear ciclo.",
+            "relToParent": {
+              "edges": [
+                { "node": { "factSheet": { "id": "app-selfparent-h" } } }
+              ]
+            }
+          }
+        },
+        {
+          "node": {
+            "id": "itc-shared-h",
+            "type": "ITComponent",
+            "displayName": "Runtime Compartido H",
+            "description": "Componente técnico sin padre declarado (queda en Contexto)."
+          }
+        }
+      ]
+    }
+  }
+}

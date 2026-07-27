@@ -1,0 +1,12 @@
+# suite_history.log — historial de veredictos del gate 1 (pytest) en pre-push (B-15).
+# Formato (una línea por corrida que llega a veredicto, incluidas las ROJO):
+#   YYYY-MM-DDTHH:MM:SSZ|passed=N|failed=N|skipped=N|VERDE_PLENO|VERDE_PARCIAL|ROJO
+# Por qué existe (R2 edad_del_verde): la edad del último verde real es dato de
+# archivo, no arqueología git — no se editan ni borran líneas manualmente.
+2026-07-23T08:34:17Z|passed=244|failed=0|skipped=0|VERDE_PLENO
+2026-07-23T08:35:30Z|passed=244|failed=0|skipped=0|VERDE_PLENO
+2026-07-23T08:35:55Z|passed=244|failed=0|skipped=1|VERDE_PARCIAL
+2026-07-23T08:36:09Z|passed=244|failed=0|skipped=1|VERDE_PARCIAL
+2026-07-23T08:36:26Z|passed=244|failed=0|skipped=5|ROJO
+2026-07-23T08:37:43Z|passed=244|failed=0|skipped=5|ROJO
+2026-07-23T08:37:53Z|passed=244|failed=0|skipped=0|VERDE_PLENO

@@ -43,6 +43,14 @@ class ComplianceCheck(BaseModel):
     level: ComplianceLevel = Field(..., description="Nivel global de cumplimiento.")
     xml_well_formed: bool = Field(default=True, description="Si el XML está bien formado.")
     stencils_detected: list[str] = Field(default_factory=list, description="Stencils detectados.")
+    unrecognized_stencils: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Stencils con `shape=` explícito que no mapean a ninguna familia conocida. "
+            "No son violación probada (el motor no inventa) pero tampoco conformes por omisión: "
+            "se marcan 'por validar' y elevan el nivel a WARNING (fail-closed)."
+        ),
+    )
     stencil_violations: list[StencilViolation] = Field(default_factory=list)
     color_violations: list[ColorViolation] = Field(default_factory=list)
     requires_archimate_license: bool = Field(default=False)

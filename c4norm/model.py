@@ -10,10 +10,10 @@ decodificado de la plantilla oficial (ver docs/C4_NORMALIZER_DESIGN.md §3).
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 
 
-class C4Type(str, Enum):
+class C4Type(StrEnum):
     """Tipos C4 soportados (valores = atributo ``c4Type`` de draw.io)."""
 
     PERSON = "Person"
@@ -174,6 +174,11 @@ class Node:
     c4_description: str = ""
     c4_technology: str = ""
     external: bool = False
+    # Metadata de gobernanza extraída de la etiqueta del autor (nunca inventada):
+    # confianza en la clasificación y estado del elemento en la CMDB. Vacío si el
+    # autor no lo declaró.
+    confidence: str = ""
+    cmdb_status: str = ""
 
     @property
     def cx(self) -> float:
