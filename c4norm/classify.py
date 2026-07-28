@@ -16,6 +16,8 @@ import contextlib
 import json
 import os
 import re
+import threading
+import warnings
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING
@@ -202,6 +204,24 @@ def _build_llm_prompt(nodes: list[Node], edges: list[Edge], c4_level: int) -> st
     )
 
 
+class LLMSpendCapError(RuntimeError):
+    """El clasificador LLM alcanzó el tope de llamadas pagadas configurado.
+
+    Fail-CLOSED por diseño: se lanza ANTES de emitir la llamada que rebasaría el
+    tope, de modo que jamás se paga por encima del límite. El llamador decide entre
+    propagar (default, ``on_cap='fail'``) o degradar a heurístico (``'degrade'``).
+    """
+
+    def __init__(self, max_calls: int) -> None:
+        self.max_calls = max_calls
+        super().__init__(
+            f"LLMClassifier: tope de gasto alcanzado ({max_calls} llamadas pagadas al "
+            f"proveedor). Sube C4NORM_LLM_MAX_CALLS si el diagrama lo justifica, usa "
+            f"classifier='heuristic' (gratis) o C4NORM_LLM_ON_CAP=degrade para caer a "
+            f"la clasificación heurística ya calculada."
+        )
+
+
 class LLMClassifier(C4Classifier):
     """
     Clasificador asistido por LLM (API tipo OpenAI, provider-agnóstico).
@@ -218,6 +238,20 @@ class LLMClassifier(C4Classifier):
       * ``C4NORM_LLM_TIMEOUT``       (def. 120 s)
       * ``C4NORM_LLM_BATCH_SIZE``    (def. 20 nodos por lote)
       * ``C4NORM_LLM_MAX_PARALLEL``  (def. 4 lotes concurrentes)
+      * ``C4NORM_LLM_MAX_CALLS``     (def. 64) — **cap de gasto fail-closed**
+      * ``C4NORM_LLM_ON_CAP``        (def. ``fail``) — ``fail`` | ``degrade``
+
+    **Cap de gasto (HU-ARQ-D1, FinOps).** El LLM es de pago y su costo escala con el
+    número de peticiones. La unidad de costo aquí es UNA petición ``/chat/completions``
+    (un ``chat(prompt)``); un diagrama de N nodos con ``batch_size`` B cuesta
+    ``ceil(N/B)`` peticiones base, y cada reintento por JSON inválido suma otra. El
+    default de esta clase es ``heuristic`` (gratis, determinista) — el LLM es opt-in.
+    ``C4NORM_LLM_MAX_CALLS`` acota el total de peticiones pagadas POR corrida de
+    ``classify()`` (default finito 64: nunca ilimitado, ni aunque el operador lo olvide).
+    Al agotarse el cap el comportamiento es **fail-closed** — jamás sigue pagando:
+      * ``on_cap='fail'`` (default): lanza :class:`LLMSpendCapError` de forma explícita.
+      * ``on_cap='degrade'``: conserva la clasificación heurística ya calculada y emite un
+        ``warnings.warn`` audible (nunca una degradación silenciosa).
 
     Para tests o proveedores alternativos se puede inyectar ``chat`` (str -> str).
     """
@@ -234,6 +268,8 @@ class LLMClassifier(C4Classifier):
         batch_size: int | None = None,
         timeout: float | None = None,
         max_parallel: int | None = None,
+        max_calls: int | None = None,
+        on_cap: str | None = None,
     ) -> None:
         self.api_base = api_base or os.environ.get("C4NORM_LLM_API_BASE", "https://api.openai.com/v1")
         self.api_key = api_key if api_key is not None else os.environ.get("C4NORM_LLM_API_KEY", "")
@@ -243,8 +279,20 @@ class LLMClassifier(C4Classifier):
         self.batch_size = batch_size if batch_size is not None else _env_int("C4NORM_LLM_BATCH_SIZE", 20)
         self.timeout = timeout if timeout is not None else _env_int("C4NORM_LLM_TIMEOUT", 120)
         self.max_parallel = max_parallel if max_parallel is not None else _env_int("C4NORM_LLM_MAX_PARALLEL", 4)
+        # Cap de gasto fail-closed (HU-ARQ-D1): tope FINITO por corrida de classify().
+        self.max_calls = max_calls if max_calls is not None else _env_int("C4NORM_LLM_MAX_CALLS", 64)
+        on_cap_raw = on_cap if on_cap is not None else os.environ.get("C4NORM_LLM_ON_CAP", "fail")
+        self.on_cap = on_cap_raw.strip().lower()
+        if self.on_cap not in ("fail", "degrade"):
+            raise ValueError(
+                f"C4NORM_LLM_ON_CAP inválido: {on_cap_raw!r} (usa 'fail' o 'degrade')"
+            )
         self._chat = chat
         self._heuristic = HeuristicClassifier()
+        # Contador de llamadas pagadas de la corrida en curso, protegido para los
+        # lotes concurrentes de _ask_batched (ThreadPoolExecutor).
+        self._budget_lock = threading.Lock()
+        self._calls_made = 0
 
     def classify(self, diagram: Diagram, c4_level: int) -> None:
         # 1) Baseline determinista (nombres, descripción, tecnología, tipo tentativo).
@@ -258,7 +306,21 @@ class LLMClassifier(C4Classifier):
             return
 
         # 3) Pedir el re-tipado en lotes y aplicarlo SOLO a nodos existentes.
-        retyped = self._ask_batched(targets, diagram.edges, c4_level)
+        #    El cap de gasto (HU-ARQ-D1) es fail-closed: si se agota, o se propaga
+        #    (on_cap='fail') o se conserva la clasificación heurística ya calculada
+        #    (on_cap='degrade'), pero NUNCA se sigue pagando.
+        self._reset_budget()
+        try:
+            retyped = self._ask_batched(targets, diagram.edges, c4_level)
+        except LLMSpendCapError as exc:
+            if self.on_cap == "degrade":
+                warnings.warn(
+                    f"LLMClassifier: {exc} Se conserva la clasificación heurística "
+                    f"(free-first) para este diagrama.",
+                    stacklevel=2,
+                )
+                return
+            raise
         by_id = {n.id: n for n in diagram.nodes}
         for node_id, fields in retyped.items():
             node = by_id.get(node_id)
@@ -280,7 +342,12 @@ class LLMClassifier(C4Classifier):
 
     # -- invocación del LLM ----------------------------------------------------
 
-    def _chat_fn(self) -> Callable[[str], str]:
+    def _reset_budget(self) -> None:
+        """Reinicia el contador de gasto al empezar una corrida de ``classify()``."""
+        with self._budget_lock:
+            self._calls_made = 0
+
+    def _base_chat_fn(self) -> Callable[[str], str]:
         if self._chat is not None:
             return self._chat
         if not self.api_key:
@@ -289,6 +356,25 @@ class LLMClassifier(C4Classifier):
                 "Usa classifier='heuristic' si no hay LLM configurado."
             )
         return self._openai_chat
+
+    def _chat_fn(self) -> Callable[[str], str]:
+        """Envuelve el ``chat`` real con el guard de gasto fail-closed.
+
+        El check-and-increment es atómico bajo ``_budget_lock`` (los lotes corren en
+        paralelo). El guard lanza :class:`LLMSpendCapError` ANTES de invocar el
+        ``chat`` real, así que jamás se emite —ni se paga— una llamada por encima del
+        cap. El contador es compartido por todos los lotes de la corrida en curso.
+        """
+        base = self._base_chat_fn()
+
+        def guarded(prompt: str) -> str:
+            with self._budget_lock:
+                if self._calls_made >= self.max_calls:
+                    raise LLMSpendCapError(self.max_calls)
+                self._calls_made += 1
+            return base(prompt)
+
+        return guarded
 
     def _openai_chat(self, prompt: str) -> str:  # pragma: no cover - requiere red
         import httpx
