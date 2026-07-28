@@ -49,28 +49,59 @@ LEANIX_C4_MAP: dict[str, C4Type] = {
 #: sin generar advertencia "por validar": es un caso CONOCIDO, no una omisión.
 _NON_NODE_TYPES: frozenset[str] = frozenset({"Interface"})
 
-#: Query GraphQL plausible sobre ``allFactSheets`` (sólo texto de referencia: no se
-#: ejecuta contra red en tests, sólo el fixture grabado se usa para probar el parseo).
-FACTSHEETS_QUERY: str = """\
-query AllFactSheets {
-  allFactSheets {
-    edges {
-      node {
-        id
-        type
-        displayName
-        description
-        ... on Application {
+#: Allow-list de MINIMIZACIÓN de datos (HU-ARQ-D2 · Ley 21.719 principio de
+#: minimización / finalidad; ver ``docs/POLITICA_DATOS_LEANIX.md``). CADA campo escalar
+#: que c4norm solicita a LeanIX declara aquí su PROPÓSITO explícito: el motor pide SÓLO
+#: lo que un diagrama C4 necesita, nada más. Los campos de FactSheet que podrían portar
+#: dato personal (owner, subscriptions, contacts, tags, lifecycle, costos, email, user)
+#: NO se piden y NO deben añadirse sin declarar su propósito aquí Y actualizar la
+#: política. Fail-closed: ``FACTSHEETS_QUERY`` se CONSTRUYE a partir de estas claves
+#: (única fuente de verdad), y ``tests/test_leanix_minimization.py`` MUERDE si aparece
+#: un escalar fuera de esta lista o un nombre de campo de la denylist PII conocida.
+FACTSHEETS_FIELD_PURPOSE: dict[str, str] = {
+    "id": "identidad referenciable — sin id la relación cuelga (Ax-C4N-001 'nunca colgar')",
+    "type": "mapeo determinista LeanIX→C4Type (LEANIX_C4_MAP); sin él no hay tipado C4",
+    "displayName": "nombre visible del nodo C4 en el diagrama",
+    "description": "descripción del nodo C4; texto de arquitectura, no de persona",
+}
+
+#: Bloque de relaciones embebidas: aristas de arquitectura app↔componente/dato/app/proveedor.
+#: Cada ``rel*`` sólo trae ``factSheet { id }`` (una REFERENCIA estructural del grafo, no un
+#: atributo de dato) — por eso no entra en la allow-list escalar, pero SÍ está sujeto a la
+#: denylist PII (una relación nueva jamás debe pedir atributos, sólo el id del extremo).
+_FACTSHEETS_RELATIONS: str = """\
+... on Application {
           relApplicationToITComponent { edges { node { factSheet { id } } } }
           relApplicationToDataObject { edges { node { factSheet { id } } } }
           relApplicationToApplication { edges { node { factSheet { id } } } }
           relApplicationToProvider { edges { node { factSheet { id } } } }
-        }
-      }
-    }
-  }
-}
+        }"""
+
+
+def _build_factsheets_query() -> str:
+    """Construye la query ``allFactSheets`` desde la allow-list (única fuente de verdad).
+
+    Que la query se DERIVE de ``FACTSHEETS_FIELD_PURPOSE`` es la garantía de minimización:
+    no se puede pedir un escalar nuevo sin añadir su clave (y por tanto su propósito) a la
+    allow-list. Sólo texto de referencia: no se ejecuta contra red en tests, sólo el fixture
+    grabado se usa para probar el parseo.
+    """
+    scalar_fields = "\n        ".join(FACTSHEETS_FIELD_PURPOSE)
+    return f"""\
+query AllFactSheets {{
+  allFactSheets {{
+    edges {{
+      node {{
+        {scalar_fields}
+        {_FACTSHEETS_RELATIONS}
+      }}
+    }}
+  }}
+}}
 """
+
+
+FACTSHEETS_QUERY: str = _build_factsheets_query()
 
 
 def parse_factsheets(response: dict) -> list[dict]:
