@@ -1,9 +1,16 @@
 # Política de datos — ingesta LeanIX (HU-ARQ-D2)
 
 > **Estado:** DECIDIDA en sus legs de ingeniería (minimización enforced + retención);
-> la **base de licitud** nace `por validar` — requiere visado de asesoría legal antes
-> de conectar el tenant real. Ax-C4N-001: el motor nunca inventa; una conclusión
-> jurídica autoafirmada es contenido de consecuencia y se marca, no se da por cierta.
+> la **base de licitud** nace `por validar` — requiere visado de la **FUNDADORA**
+> (titular de la decisión de base de licitud, Ley 21.719), con **revisión interna previa
+> de lider-DPO-transversal**, antes de conectar el tenant real. Ax-C4N-001: el motor nunca
+> inventa; una conclusión jurídica autoafirmada es contenido de consecuencia y se marca,
+> no se da por cierta.
+>
+> **Solicitud de visado elevada:** `2026-07-29` — ver
+> [`SOLICITUD_VISADO_LICITUD_LEANIX.md`](SOLICITUD_VISADO_LICITUD_LEANIX.md). El reloj de
+> B-04b (`recheck_by: 2026-08-03`) corre contra este gate re-anclado a la fundadora, no
+> contra el gate fantasma anterior (HU-ARQ-D2b, VALIDACION líder-arquitectura 2026-07-29).
 >
 > **Precondición dura del gate B-04b** (SSO federado real `falabella.leanix.net`,
 > `recheck_by: 2026-08-03`): el SSO real NO se conecta sin esta política aprobada.
@@ -66,13 +73,17 @@ del tenant. Política:
 - **Cortafuegos federado:** ningún dato de tenant cruza al `.hive` compartido (sólo
   método). Regla vigente de esta célula.
 
-## 4. Base de licitud (`por validar` — requiere asesoría legal)
+## 4. Base de licitud (`por validar` — visado de la FUNDADORA, revisión previa lider-DPO-transversal)
 
 > Esta sección enumera las bases *candidatas* bajo la Ley 21.719 (protección de datos
 > personales, Chile) y la lógica de por qué el tratamiento debería ser lícito. **No es un
 > dictamen legal.** Nace `sin_verificar`: el motor no inventa una conclusión jurídica.
-> Debe ser **ratificada por asesoría legal / DPO** antes de conectar el tenant real
-> (precondición de B-04b).
+> Debe ser **ratificada por la FUNDADORA** — titular de la decisión de base de licitud en
+> este ecosistema (no existe asesoría legal / DPO externa: anclar el gate a un actor
+> inexistente lo convierte en gate fantasma que nunca abre, HU-ARQ-D2b) — con
+> **lider-DPO-transversal** como revisión interna previa, antes de conectar el tenant real
+> (precondición de B-04b). Solicitud elevada `2026-07-29`
+> (`SOLICITUD_VISADO_LICITUD_LEANIX.md`).
 
 - **Naturaleza del dato:** el inventario LeanIX es dato de **arquitectura corporativa**
   (aplicaciones, componentes, objetos de dato, proveedores). En principio **no** es dato
@@ -85,7 +96,7 @@ del tenant. Política:
 - **Si se detectara dato personal residual** (p. ej. un nombre en un `displayName`): base
   candidata = interés legítimo del responsable (documentación de sus propios sistemas),
   sujeta a ponderación y a los deberes de información/minimización ya cubiertos.
-  `por validar` por asesoría legal.
+  `por validar` por la FUNDADORA (revisión previa lider-DPO-transversal).
 - **Deberes acompañantes:** minimización (§2, cumplida en código), finalidad declarada
   (§2), retención limitada (§3). Falta el visado humano de licitud.
 
@@ -95,8 +106,13 @@ del tenant. Política:
 |-----|--------|
 | Allow-list de campos con justificación | ✅ enforced en código + diente que muerde |
 | Política de retención de artefactos derivados | ✅ escrita (§3); plazo concreto `por validar` |
-| Base de licitud escrita | ✅ escrita (§4) pero `por validar` — **gate humano: asesoría legal/DPO** |
+| Base de licitud escrita | ✅ escrita (§4) pero `por validar` — **gate humano: FUNDADORA** (revisión previa lider-DPO-transversal); solicitud elevada `2026-07-29` |
 
 **Conclusión honesta:** los legs de ingeniería de D2 quedan cerrados y verificados; el
-único pendiente es la **ratificación legal** de la base de licitud, que es gate humano y
-precede a B-04b. No se conecta el SSO real hasta ese visado.
+único pendiente es la **ratificación de la base de licitud por la FUNDADORA** (titular de
+esa decisión bajo la Ley 21.719, con lider-DPO-transversal en revisión interna previa),
+que es gate humano y precede a B-04b. El gate estaba antes anclado a «asesoría legal/DPO»
+—actor inexistente en este ecosistema = gate fantasma que nunca abre— y quedó re-anclado a
+la fundadora (HU-ARQ-D2b). La solicitud fue elevada el `2026-07-29`
+(`SOLICITUD_VISADO_LICITUD_LEANIX.md`); el reloj de B-04b (`2026-08-03`) corre contra este
+gate real. No se conecta el SSO real hasta ese visado.
