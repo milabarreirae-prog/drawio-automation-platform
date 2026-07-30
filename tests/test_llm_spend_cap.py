@@ -123,3 +123,31 @@ def test_env_configures_cap_and_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.warns(UserWarning):
         clf.classify(_five_node_diagram(), 2)
     assert calls[0] == 1
+
+
+@pytest.mark.parametrize("raw", ["abc", "", "  ", "12.5", "1e3", "0x40"])
+def test_malformed_max_calls_falls_back_to_default(monkeypatch: pytest.MonkeyPatch, raw: str) -> None:
+    """La lectura malformada de C4NORM_LLM_MAX_CALLS NUNCA deja el cap sin definir:
+    ``int()`` falla y ``_env_int`` cae al default finito 64 (fail-closed por defecto).
+    """
+    monkeypatch.setenv("C4NORM_LLM_MAX_CALLS", raw)
+    clf = LLMClassifier(chat=lambda _p: "{}")
+    assert clf.max_calls == 64
+
+
+@pytest.mark.parametrize("raw", ["0", "-1", "-100"])
+def test_nonpositive_max_calls_blocks_all_paid_calls(monkeypatch: pytest.MonkeyPatch, raw: str) -> None:
+    """C4NORM_LLM_MAX_CALLS<=0 se parsea literalmente -> el guard (``>= max_calls``)
+    dispara en el PRIMER lote -> bloqueo TOTAL: ni una sola llamada pagada.
+    """
+    calls, chat = _counting_chat()
+    monkeypatch.setenv("C4NORM_LLM_MAX_CALLS", raw)
+    clf = LLMClassifier(chat=chat, batch_size=1, max_parallel=1)
+
+    with pytest.raises(LLMSpendCapError):
+        clf.classify(_five_node_diagram(), 2)
+
+    # DIENTE: bloqueo TOTAL, jamás se paga una sola llamada. Sin el guard
+    # ``_calls_made >= max_calls`` disparando ANTES del primer chat(), esto
+    # pagaría >=1 llamada (hasta 5, una por lote).
+    assert calls[0] == 0
