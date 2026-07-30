@@ -146,6 +146,22 @@ def test_leanix_malformed_response_raises_distinguishably(malformed_response: di
         parse_factsheets(malformed_response)
 
 
+@pytest.mark.parametrize(
+    "non_dict_response",
+    [None, "tenant vacío", [], 42],
+    ids=["none", "str", "list", "int"],
+)
+def test_leanix_non_dict_response_raises(non_dict_response: object) -> None:
+    """Diente HU-QA-D01: el PRIMER guard de parse_factsheets (no-dict → ValueError,
+    leanix.py:124-125) nunca se ejercitaba — los casos malformados hermanos son todos
+    dicts. Un transporte que entrega None/str/list/int (respuesta truncada, JSON de
+    error crudo, deserialización fallida) DEBE lanzar audible, jamás degradar a []. La
+    mutación que muerde: cambiar `if not isinstance(response, dict)` por un no-op deja
+    caer estos 4 casos con AttributeError/TypeError aguas abajo o (si se elimina) []."""
+    with pytest.raises(ValueError):
+        parse_factsheets(non_dict_response)  # type: ignore[arg-type]
+
+
 # =============================================================================
 # R3 — guard enumerador: ningún productor público nuevo se cuela sin auditar
 # =============================================================================

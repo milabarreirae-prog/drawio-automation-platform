@@ -123,3 +123,38 @@ def test_relations_pull_only_reference_ids() -> None:
     # todo identificador es: una clave de allow-list, un token estructural, o un rel*.
     unexpected = _all_identifiers(FACTSHEETS_QUERY) - set(FACTSHEETS_FIELD_PURPOSE) - structural - rel_tokens
     assert not unexpected, f"identificador(es) inesperado(s) en la query: {sorted(unexpected)}"
+
+
+#: HU-QA-D04 — testigo HARDCODEADO (humano, NO derivado de la allow-list) de los
+#: escalares que ``inventory_to_diagram`` consume aguas abajo y cuya AUSENCIA de la
+#: query degradaría el diagrama en silencio. Ancla contra REMOCIONES (H1 del 23º
+#: recorrido QA): quitar un campo de la allow-list lo saca de la query construida y
+#: rompe esta cota — el observable es el TEXTO de la query, no la allow-list que se audita.
+_SCALARS_REQUIRED_DOWNSTREAM: frozenset[str] = frozenset(
+    {
+        "id",           # leanix.py: fs_id referenciable; sin él la relación cuelga
+        "type",         # LEANIX_C4_MAP → C4Type; sin él no hay tipado
+        "displayName",  # nombre visible del nodo C4
+        "description",  # c4_description del nodo
+    }
+)
+
+
+def test_query_requests_every_scalar_consumed_downstream() -> None:
+    """MUERDE ante REMOCIÓN: cada escalar que inventory_to_diagram consume DEBE
+    aparecer en el TEXTO de la query. Testigo independiente (lista hardcodeada) contra
+    observable independiente (leaves re-parseadas del texto). Mutación que el 23º
+    recorrido pidió fijar: quitar 'description' de FACTSHEETS_FIELD_PURPOSE → el builder
+    lo saca de la query → esta cota cae (hoy: 0 rojos, era el hueco H1)."""
+    leaves = _outer_scalar_leaves(FACTSHEETS_QUERY)
+    faltantes = _SCALARS_REQUIRED_DOWNSTREAM - leaves
+    assert not faltantes, f"la query NO pide escalar(es) consumido(s) aguas abajo: {sorted(faltantes)}"
+
+
+def test_required_scalars_are_declared_in_allowlist() -> None:
+    """Gemelo legítimo: los escalares requeridos son subconjunto de la allow-list, y
+    AÑADIR un campo no-PII nuevo con propósito no rompe esta cota (subset se mantiene).
+    Separa 'requerido por el consumidor' de 'declarado en la política' sin derivar uno
+    del otro."""
+    no_declarados = _SCALARS_REQUIRED_DOWNSTREAM - set(FACTSHEETS_FIELD_PURPOSE)
+    assert not no_declarados, f"campo(s) consumido(s) no declarado(s) en la allow-list: {sorted(no_declarados)}"
