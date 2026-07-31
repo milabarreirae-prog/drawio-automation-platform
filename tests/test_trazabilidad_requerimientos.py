@@ -6,16 +6,17 @@ requerimientos marcados explícitamente como Futuro/EN DESARROLLO (pendientes de
 que no cuentan como huérfanos).
 
 Test 1 corre el verificador REAL como subproceso contra el doc REAL del repo y afirma el
-estado HONESTO observado (no maquillado): a fecha de escritura de este test, el doc real
-tiene 16 requerimientos (RF-001..RF-011, RNF-001..RNF-005), de los cuales 2 son pendientes
-declarados (RF-011, RNF-005) y **3 salen huérfanos**: RF-008 (cero referencias a tests en
-su sección — solo cita "B-01a/B-01b tests" en prosa, sin ningún `test_*.py` real), RNF-002
-(cita `tests/test_*.py` con un glob literal que nunca matchea el patrón de node-id de
-pytest) y RNF-003 (cita `test_audit_perf.py::test_cli_latency`, pero esa función no existe
-en `tests/test_audit_perf.py` — ese archivo real contiene tests de concurrencia LLM, no de
-latencia). Si en el futuro se corrige el doc y estos tres dejan de ser huérfanos, este test
-debe actualizarse para reflejar el nuevo estado honesto (no se debe fijar en verde a
-ciegas).
+estado HONESTO observado (no maquillado). HISTORIA: a la fecha original de escritura de este
+test, el doc real tenía 3 huérfanos (RF-008 sin ningún `test_*.py` real citado; RNF-002 con
+un glob literal `tests/test_*.py` que nunca matchea el patrón de node-id de pytest; RNF-003
+citando `test_audit_perf.py::test_cli_latency`, función que no existía todavía). Cierre
+HU-QA-D06 (2026-07-31): se escribieron `tests/test_audit_perf.py::test_cli_latency` y
+`::test_api_latency` de verdad (miden CLI/API reales contra fixture), y se re-ancló RF-008 /
+RNF-002 a node-ids reales en `wiki/REQUERIMIENTOS_v1.md`. Hoy el doc real tiene 16
+requerimientos (RF-001..RF-011, RNF-001..RNF-005), de los cuales 2 son pendientes declarados
+(RF-011, RNF-005) y **cero salen huérfanos**. Si en el futuro se reintroduce una cita
+fantasma, este test debe volver a actualizarse para reflejar el nuevo estado honesto (no se
+debe fijar en verde a ciegas).
 
 Test 2 es el diente mutation-proof: fabrica un requerimiento con una referencia fantasma,
 confirma que el verificador lo marca huérfano, y luego confirma que con una referencia real
@@ -43,9 +44,10 @@ TESTS_DIR = Path(__file__).resolve().parent
 REAL_EXISTING_TEST_REF = "tests/test_c4norm.py::test_all_levels_emit_valid_xml"
 
 
-def test_real_doc_hoy_tiene_exactamente_tres_huerfanos() -> None:
+def test_real_doc_hoy_tiene_cero_huerfanos() -> None:
     """Estado honesto observado corriendo el verificador contra el doc real (ver docstring
-    del módulo): RF-008, RNF-002 y RNF-003 son huérfanos hoy; el resto no."""
+    del módulo): tras HU-QA-D06, RF-008/RNF-002/RNF-003 dejaron de ser huérfanos y el
+    resto tampoco lo era; hoy el doc entero pasa limpio."""
     proceso = subprocess.run(
         [sys.executable, "scripts/verificar_trazabilidad_requerimientos.py"],
         capture_output=True,
@@ -53,16 +55,12 @@ def test_real_doc_hoy_tiene_exactamente_tres_huerfanos() -> None:
         cwd=REPO_ROOT,
     )
 
-    assert proceso.returncode == 1, proceso.stdout
-    assert "RF-008" in proceso.stdout
-    assert "RNF-002" in proceso.stdout
-    assert "RNF-003" in proceso.stdout
-    assert "3 requerimiento(s) hu" in proceso.stdout  # "huérfano(s)" (acento omitido a propósito)
+    assert proceso.returncode == 0, proceso.stdout
+    assert "cero hu" in proceso.stdout  # "cero huérfanos" (acento omitido a propósito)
 
     # Confirmación independiente vía la función importable, contra el mismo doc real.
     resultado = analizar(DOC_PATH_DEFAULT, REPO_ROOT / "tests")
-    huerfanos_ids = {h.req_id for h in resultado.huerfanos}
-    assert huerfanos_ids == {"RF-008", "RNF-002", "RNF-003"}
+    assert resultado.huerfanos == []
     assert set(resultado.pendientes) == {"RF-011", "RNF-005"}
 
 

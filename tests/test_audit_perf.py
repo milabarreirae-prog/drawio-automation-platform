@@ -3,13 +3,17 @@ Tests para la tanda de rendimiento de la auditoría:
   - Paralelización de lotes del LLM (ThreadPoolExecutor)
   - Configuración por entorno: batch_size, timeout, max_parallel
   - Correctitud: la paralelización no pierde ni duplica nodos
+  - Latencia real de CLI y API (RNF-003: CLI <5s, API <2s) contra fixture real
 """
 
 from __future__ import annotations
 
 import json
+import sys
+import tempfile
 import threading
 import time
+from pathlib import Path
 
 from c4norm.classify import LLMClassifier
 from c4norm.model import C4Type, Diagram, Node
@@ -128,3 +132,48 @@ def test_explicit_args_override_env(monkeypatch) -> None:
     monkeypatch.setenv("C4NORM_LLM_BATCH_SIZE", "7")
     clf = LLMClassifier(batch_size=50)
     assert clf.batch_size == 50  # el argumento explícito gana sobre el entorno
+
+
+# =============================================================================
+# RNF-003: Performance — CLI <5s, API <2s (diagrama simple, sin LLM/red)
+# =============================================================================
+
+_FIXTURE_SIMPLE = Path(__file__).parent / "fixtures" / "crudo_ia_2_simple.drawio.xml"
+
+
+def test_cli_latency() -> None:
+    """`python -m c4norm <crudo> -o <salida>` sobre un diagrama simple tarda <5s."""
+    import subprocess
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        out_path = Path(tmp_dir) / "out_perf_cli.drawio.xml"
+        start = time.perf_counter()
+        result = subprocess.run(
+            [sys.executable, "-m", "c4norm", str(_FIXTURE_SIMPLE), "--level", "2", "-o", str(out_path)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        elapsed = time.perf_counter() - start
+
+        assert result.returncode == 0, f"CLI falló: stderr={result.stderr}"
+        assert out_path.is_file()
+        assert elapsed < 5.0, f"CLI tardó {elapsed:.3f}s (esperado <5s)"
+
+
+def test_api_latency() -> None:
+    """POST /api/v1/diagram/normalize sobre un diagrama simple tarda <2s (sin LLM)."""
+    from fastapi.testclient import TestClient
+
+    from api.main import _clear_rate_limit_state, app
+
+    _clear_rate_limit_state()
+    client = TestClient(app)
+    raw_xml = _FIXTURE_SIMPLE.read_text(encoding="utf-8")
+
+    start = time.perf_counter()
+    response = client.post("/api/v1/diagram/normalize", json={"xml_content": raw_xml, "c4_level": 2})
+    elapsed = time.perf_counter() - start
+
+    assert response.status_code == 200, f"API falló: {response.text}"
+    assert elapsed < 2.0, f"API tardó {elapsed:.3f}s (esperado <2s)"

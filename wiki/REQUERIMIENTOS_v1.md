@@ -16,12 +16,12 @@ actualizado: 2026-07-18
 
 ## 🎯 Resumen Ejecutivo
 
-**Estado actual:** Motor c4norm maduro (206 tests, 93% cobertura código vivo). GENESIS técnico completo per ROADMAP; matriz de trazabilidad aquí formaliza conformidad.
+**Estado actual:** Motor c4norm maduro (305 tests, 92.49% cobertura código vivo medida 2026-07-31 — por validar: meta declarada de 93% aún no alcanzada). GENESIS técnico completo per ROADMAP; matriz de trazabilidad aquí formaliza conformidad.
 
 | Categoría | Cuenta | Estado |
 |-----------|--------|--------|
 | RF | 10 | ✅ CUMPLIDO (9) + ⏳ EN DESARROLLO (1) |
-| RNF | 5 | ✅ CUMPLIDO (3) + ⏳ EN DESARROLLO (2) |
+| RNF | 5 | ✅ CUMPLIDO (3) + ⏳ POR VALIDAR (1) + ⏳ EN DESARROLLO (1) |
 | Deuda futura | 4 rebanadas (B-03, B-04, B-05, +sync) | 📋 POR VALIDAR (requiere load-test corporativo) |
 
 ---
@@ -215,10 +215,12 @@ Metadata que el arquitecto anota en el diagrama (`Confianza: Baja`, `Estado CMDB
 **Traza a código**
 - **Campos estructurados:** `c4norm/model.py::Node.confidence`, `Node.cmdb_status` (implementado en B-01a)
 - **Render + Leyenda:** `c4norm/legend.py::LegendBuilder` genera fila "Confianza/CMDB: declarado por autor" si algún nodo trae gobernanza (implementado en B-01b)
-- **Verificación:** Drive real del ciclo B-01a (2026-07-10) confirma: nodo con `confidence="Baja"` → XML emitido contiene `c4Confidence="low"` + franja visual; leyenda `anno-legend-governance` presente si hay badges
+- **Verificación:** Drive real del ciclo B-01a (2026-07-10) confirma: nodo con `confidence="Baja"` → XML emitido contiene `c4Confidence="low"` + franja visual; leyenda `anno-legend-governance` presente si hay badges (node-ids: `tests/test_c4norm.py::test_governance_metadata_extracted_to_structured_fields`, `tests/test_c4norm.py::test_governance_badge_rendered_in_node_label`, `tests/test_enrich.py::test_standard_legend_adds_governance_row_only_when_declared`)
 
 **Pruebas verificadas**
-- Baseline pytest (B-01a/B-01b, 195 passed) incluye cobertura de fields + legend rendering
+- `tests/test_c4norm.py::test_governance_metadata_extracted_to_structured_fields` — metadata de gobernanza extraída a campos estructurados `Node.confidence`/`Node.cmdb_status`
+- `tests/test_c4norm.py::test_governance_badge_rendered_in_node_label` — franja de gobernanza renderizada en la etiqueta del nodo
+- `tests/test_enrich.py::test_standard_legend_adds_governance_row_only_when_declared` — fila de leyenda separada, solo cuando hay gobernanza declarada
 - Manual: emisión sobre fixture Falabella con metadata de gobernanza → leyenda presente, nodo etiquetado correctamente
 
 **Estado:** ✅ **CUMPLIDO**  
@@ -310,7 +312,7 @@ Verificador independiente: Ax-C4N-010 (votar es verificar código vivo, no narra
 ### RNF-002: Cobertura de pruebas — suite pytest ≥93%
 
 **Descripción**  
-Suite pytest de 206 tests (mínimo) que cubre:
+Suite pytest (305 tests medidos 2026-07-31; 206 fue el baseline histórico) que cubre:
 - Pipeline completo (parse → classify → ground → layout → emit)
 - Ambos layouts (ELK + fallback Python)
 - Ambos clasificadores (heurístico + LLM)
@@ -319,18 +321,23 @@ Suite pytest de 206 tests (mínimo) que cubre:
 - Reparaciones (mojibake, aristas huérfanas, padres colgantes)
 - Casos límite (nivel C4 inválido, XML malformado, overflow multi-hoja)
 
-Cobertura de código vivo: ≥93% (baseline actual: 1402 líneas cubiertas de 2018 totales).
+Cobertura de código vivo: meta ≥93%. **Medición real 2026-07-31** (`pytest -p no:metadata -q`, 305 tests): **92.49%** (2105/2276 líneas cubiertas) — **por validar: meta 93% aún no alcanzada** (actual 92%, floor entero). El umbral numérico lo impone el gate `fail_under = 92` de `[tool.coverage.report]` en `pyproject.toml` (configuración ejecutable, no un test unitario suelto); subirlo a 93 requiere que una corrida real lo respalde primero — el motor no inventa cobertura.
 
 **Traza a código**
-- **Suite:** `tests/test_*.py` (16 archivos, 206 tests)
-- **Coverage:** `pytest --cov=c4norm --cov=api`
-- **CI local:** Pre-push gate `B-11` valida `pytest && coverage ≥93%`
+- **Pipeline completo:** `tests/test_c4norm.py`
+- **Ambos layouts (ELK + fallback Python):** `tests/test_c4norm.py::test_elk_used_when_available_and_routes_branches`, `tests/test_c4norm.py::test_layered_fallback_emits_valid_xml`
+- **Ambos clasificadores (heurístico + LLM):** `tests/test_llm_classifier.py`
+- **API endpoints:** `tests/test_api.py`
+- **Compliance linting:** `tests/test_linting.py`
+- **Reparaciones (mojibake, aristas huérfanas, padres colgantes):** `tests/test_repair_parents.py`
+- **Multi-hoja / edge cases:** `tests/test_multisheet.py`
+- **Gate de cobertura:** `pyproject.toml::[tool.coverage.report].fail_under` (92, configuración — ver nota arriba)
 
 **Pruebas verificadas**
-- Ejecución: `pytest` → 206 passed, 0 failed
-- Coverage: `pytest --cov` → 93%+ de líneas de código vivo cubiertas
+- Ejecución: `pytest -p no:metadata -q` → 305 passed, 0 failed (medido 2026-07-31)
+- Coverage: `pytest --cov` → 92.49% de líneas de código vivo cubiertas (gate `fail_under=92` en `pyproject.toml`; suite falla roja si cae por debajo)
 
-**Estado:** ✅ **CUMPLIDO**
+**Estado:** ⏳ **POR VALIDAR** (meta 93% declarada, actual medido 92%; suite y gate honestos, brecha de 1 punto porcentual documentada — no se marca CUMPLIDO hasta alcanzar 93% real)
 
 ---
 
@@ -348,7 +355,8 @@ Baseline actual: process Node persistente (B-02) amortiza arranque Node (~100-40
 - **Metrics:** `api/main.py` expone Prometheus `response_latency_ms` en `/metrics`
 
 **Pruebas verificadas**
-- `test_audit_perf.py::test_cli_latency` — run CLI, verifica <5s
+- `tests/test_audit_perf.py::test_cli_latency` — run CLI real sobre `tests/fixtures/crudo_ia_2_simple.drawio.xml`, verifica <5s (medido 2026-07-31: ≈0.48s)
+- `tests/test_audit_perf.py::test_api_latency` — POST real a `/api/v1/diagram/normalize` (TestClient, sin LLM/red), verifica <2s (medido 2026-07-31: ≈0.24s)
 - Manual: `time python -m c4norm fixtures/ia1_raw.xml -o /tmp/out.xml` <5s
 
 **Estado:** ✅ **CUMPLIDO**  
@@ -412,12 +420,12 @@ Condición de reapertura: sandbox Confluence disponible para prueba de integraci
 | **RF-005** | CLI + API FastAPI | `c4norm/__main__.py` `api/main.py` | `test_api.py::TestNormalize` | ✅ CUMPLIDO | `test_api.py` |
 | **RF-006** | Clasificador pluggable (heur + LLM) | `c4norm/classify.py` | `test_llm_classifier.py::test_invalid_type_keeps_heuristic` | ✅ CUMPLIDO | `test_llm_classifier.py` |
 | **RF-007** | Reparación sin inventar | `c4norm/parse.py` `model.py` | `test_repair_parents.py` `test_audit_fixes.py` | ✅ CUMPLIDO | `test_repair_parents.py` |
-| **RF-008** | Metadata gobernanza (Confianza/CMDB) | `c4norm/model.py` `legend.py` | B-01a/B-01b tests (195 baseline) | ✅ CUMPLIDO | B-01a/B-01b drive real 2026-07-10 |
+| **RF-008** | Metadata gobernanza (Confianza/CMDB) | `c4norm/model.py` `legend.py` | `tests/test_c4norm.py::test_governance_metadata_extracted_to_structured_fields`, `::test_governance_badge_rendered_in_node_label`, `tests/test_enrich.py::test_standard_legend_adds_governance_row_only_when_declared` | ✅ CUMPLIDO | B-01a/B-01b drive real 2026-07-10 |
 | **RF-009** | Proceso Node persistente (B-02) | `c4norm/layout/elk.py::_PersistentElkProcess` | Integración en `test_c4norm.py` | ✅ CUMPLIDO | `test_audit_perf.py` |
 | **RF-010** | Multi-hoja si desborda + boundaries | `c4norm/emit.py::Emitter.emit()` | `test_multisheet.py::test_decompose_by_boundary` | ✅ CUMPLIDO | `test_multisheet.py` |
 | **RF-011** | Enriquecimiento LeanIX (B-04) | `c4norm/etl_leanix.py` (stub) | *Por escribir en B-04* | ⏳ EN DESARROLLO | *Futuro B-04* |
 | **RNF-001** | Fidelidad — nunca inventa | `c4norm/classify.py` `enrich.py` | `test_llm_classifier.py::test_invalid_type_keeps_heuristic` | ✅ CUMPLIDO | `test_enrich.py::test_unvalidated_marked` |
-| **RNF-002** | Suite pytest ≥93% | `tests/test_*.py` (206 tests) | `pytest --cov` | ✅ CUMPLIDO | CI local pre-push (B-11) |
+| **RNF-002** | Suite pytest ≥93% | `tests/test_c4norm.py` `test_llm_classifier.py` `test_api.py` `test_linting.py` `test_repair_parents.py` `test_multisheet.py` | `tests/test_c4norm.py::test_elk_used_when_available_and_routes_branches`, `::test_layered_fallback_emits_valid_xml` | ⏳ POR VALIDAR (92.49% actual < 93% meta) | Gate `fail_under=92` en `pyproject.toml` |
 | **RNF-003** | Performance <5s CLI, <2s API | `c4norm/layout/elk.py` (persistente) | `test_audit_perf.py::test_cli_latency` | ✅ CUMPLIDO | Baseline B-02 |
 | **RNF-004** | Conformidad ISO/ANSI | `c4norm/sheet.py` | `test_api.py::test_title_block_accepted` | ✅ CUMPLIDO | Manual `grep` + `xmllint` |
 | **RNF-005** | Renderizable en Confluence | `api/linting.py::check_confluence_compat()` | *B-09 futuro* | ⏳ EN DESARROLLO | *Futuro B-09* |

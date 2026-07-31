@@ -88,6 +88,11 @@ source = ["api", "c4norm"]
 omit = ["tests/*"]
 
 [tool.coverage.report]
+# Gate real (RNF-002): medido 2026-07-31 con `pytest -p no:metadata -q` → 92.49% (2105/2276
+# líneas). La meta declarada en wiki/REQUERIMIENTOS_v1.md es ≥93%; hoy NO se alcanza, así que
+# el gate se fija al piso entero de lo medido (92), no al número aspiracional. Subir este valor
+# solo cuando una corrida real de `coverage report` lo respalde (el motor no inventa cobertura).
+fail_under = 92
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
