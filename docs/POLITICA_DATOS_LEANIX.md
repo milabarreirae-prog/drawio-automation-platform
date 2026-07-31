@@ -54,6 +54,21 @@ suscripciones, contactos, correos, usuarios creador/modificador, tags, costos, c
 vida, documentos, comentarios. Son los que con mayor probabilidad portan dato personal o
 de negocio ajeno a un diagrama de arquitectura.
 
+### 2.1 Escalares consumidos pero NO solicitados (rotulados a propósito — HU-QA-D05)
+
+`inventory_to_diagram` lee de `raw` dos escalares que `FACTSHEETS_QUERY` **no pide**
+(no están en `FACTSHEETS_FIELD_PURPOSE`). No son campos PII colados por accidente — son
+consumo-sin-pedir, cada uno con su propia decisión honesta, rotulados aquí para que no
+se evaporen en silencio:
+
+| Escalar | Se consume en | Decisión honesta |
+|---------|----------------|-------------------|
+| `external` | `inventory_to_diagram` (`bool(raw.get("external"))`, línea ~252) | NO se pide → en producción siempre `None`→`False`: **un sistema externo no-Provider jamás se marca `external=True` = pérdida de fidelidad silenciosa**. `por validar` — pedir `external` es un campo **nuevo** (requiere propósito + visado de política, gate D2); `recheck_by 2026-08-03` (junto a B-04b). No se auto-añade: el motor no inventa una decisión de política. |
+| `name` | `inventory_to_diagram` (`raw.get("name")`, línea ~244) | Fallback muerto: `displayName` siempre se pide → nunca dispara en producción. Se conserva como no-op defensivo, documentado; su remoción sería higiene de motor (tarea B futura), fuera del alcance de este cierre QA. |
+
+Diente que lo ancla: `tests/test_leanix_minimization.py::test_every_consumed_raw_scalar_is_accounted_for`
+— un `raw.get()` nuevo sin pedir ni rotular pone rojo.
+
 ## 3. Retención de artefactos derivados
 
 El artefacto derivado (XML C4 / diagrama) puede reflejar `displayName` y `description`

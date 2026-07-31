@@ -13,8 +13,10 @@ Política acompañante: ``docs/POLITICA_DATOS_LEANIX.md`` (minimización + reten
 
 from __future__ import annotations
 
+import inspect
 import re
 
+from c4norm import leanix as _leanix_mod
 from c4norm.leanix import FACTSHEETS_FIELD_PURPOSE, FACTSHEETS_QUERY
 
 #: Nombres de campo de FactSheet de LeanIX conocidos por portar (o poder portar) dato
@@ -158,3 +160,66 @@ def test_required_scalars_are_declared_in_allowlist() -> None:
     del otro."""
     no_declarados = _SCALARS_REQUIRED_DOWNSTREAM - set(FACTSHEETS_FIELD_PURPOSE)
     assert not no_declarados, f"campo(s) consumido(s) no declarado(s) en la allow-list: {sorted(no_declarados)}"
+
+
+#: HU-QA-D05 — escalares que inventory_to_diagram CONSUME de `raw` pero la query NO
+#: pide a propósito (decisión documentada en docs/POLITICA_DATOS_LEANIX.md §2.1). NO son
+#: PII: son consumo-sin-pedir que degradaría en silencio si nadie lo rotula (genotipo
+#: litmus_de_alcance: enumerar el universo, rotular la diferencia).
+_DELIBERATELY_OMITTED_CONSUMED_SCALARS: dict[str, str] = {
+    "external": "consumido en leanix.py `bool(raw.get('external'))`; NO se pide -> en produccion "
+                "siempre None->False: un sistema externo no-Provider jamas se marca external. Perdida "
+                "de fidelidad 'por validar': pedirlo es campo nuevo (proposito + visado politica, gate "
+                "D2). recheck_by 2026-08-03.",
+    "name": "fallback muerto en leanix.py `raw.get('name')`; displayName siempre se pide -> nunca "
+            "dispara en produccion. Se conserva como no-op defensivo; documentado, no pedido.",
+}
+
+#: Claves NO-escalares que inventory_to_diagram lee de `raw` como literal: relaciones/
+#: jerarquia (dict-valued), no campos de dato escalar. Se excluyen del recuento de escalares.
+_STRUCTURAL_RAW_KEYS: frozenset[str] = frozenset({"relToParent"})
+
+
+def _scalars_consumed_from_raw() -> set[str]:
+    """Enumera TODO literal `raw.get("X")` / `raw["X"]` en el SOURCE de c4norm.leanix.
+    Observable independiente del builder y del witness: si alguien anade un nuevo
+    `raw.get("foo")` sin pedirlo ni documentarlo, aparece aqui y el test muerde."""
+    src = inspect.getsource(_leanix_mod)
+    return set(re.findall(r"""raw(?:\.get\(|\[)\s*['"]([A-Za-z_][A-Za-z0-9_]*)['"]""", src))
+
+
+def test_every_consumed_raw_scalar_is_accounted_for() -> None:
+    """MUERDE: todo escalar leído de ``raw`` en el source de ``c4norm.leanix`` debe estar
+    clasificado — pedido en la allow-list, O deliberadamente-omitido-documentado
+    (``_DELIBERATELY_OMITTED_CONSUMED_SCALARS``), O estructural (relación/jerarquía). Un
+    ``raw.get('X')`` nuevo que no sea ninguna de las tres cosas cae aquí: cierra la
+    evaporación silenciosa de "consumo-sin-pedir" que HU-QA-D05 vino a rotular — el
+    testigo `_SCALARS_REQUIRED_DOWNSTREAM` de HU-QA-D04 enumeraba sólo lo pedido-y-
+    consumido, dejando `external`/`name` (consumidos-pero-no-pedidos) sin nombrar."""
+    consumed = _scalars_consumed_from_raw()
+    accounted = set(FACTSHEETS_FIELD_PURPOSE) | set(_DELIBERATELY_OMITTED_CONSUMED_SCALARS) | _STRUCTURAL_RAW_KEYS
+    sin_clasificar = consumed - accounted
+    assert not sin_clasificar, f"escalar(es) consumido(s) de raw sin pedir ni rotular: {sorted(sin_clasificar)}"
+
+
+def test_omitted_scalars_match_code_reality() -> None:
+    """Anti-ficción: la decisión documentada en ``_DELIBERATELY_OMITTED_CONSUMED_SCALARS``
+    no puede mentir. Cada clave omitida DEBE consumirse de verdad en el source (si no, es
+    prosa muerta) Y NO puede estar en la allow-list (si se resuelve el gate D2 moviendo
+    `external` a la allow-list, este test cae y obliga a sacarlo del set omitido —
+    acoplamiento honesto código<->documentación, no dos fuentes que puedan divergir)."""
+    consumed = _scalars_consumed_from_raw()
+    for key in _DELIBERATELY_OMITTED_CONSUMED_SCALARS:
+        assert key in consumed, f"'{key}' documentado como omitido pero ya NO se consume en el source"
+        assert key not in FACTSHEETS_FIELD_PURPOSE, (
+            f"'{key}' documentado como omitido pero YA está en la allow-list — sácalo del set omitido"
+        )
+
+
+def test_omitted_scalars_carry_a_reason() -> None:
+    """Cada exclusión se rotula con causa (litmus_de_alcance R2): una razón vacía o
+    telegráfica no es una decisión documentada, es un placeholder."""
+    for key, reason in _DELIBERATELY_OMITTED_CONSUMED_SCALARS.items():
+        assert isinstance(reason, str) and len(reason.strip()) >= 20, (
+            f"escalar omitido '{key}' sin razón sustantiva documentada"
+        )
