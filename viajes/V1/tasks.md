@@ -13,8 +13,15 @@ fecha: 2026-07-18
 > `uvicorn`), jamás contra narrativa de board. Ver [[viajes/V1/spec|spec.md]] /
 > [[viajes/V1/plan|plan.md]].
 >
-> **Estado de honestidad:** las 4 rebanadas están **TODAS ABIERTAS** hoy (2026-07-18) — ninguna
-> tiene trabajo iniciado. Cada task trae DADO/CUANDO/ENTONCES o ruta+aserción del test futuro (DoR
+> **Estado de honestidad (actualizado 2026-07-30, G-26 — corrige la evaporación silenciosa que
+> HU-ARQ-D5 muerde):** ya NO es cierto que «las 4 rebanadas están todas abiertas, ninguna con
+> trabajo iniciado» (afirmación fechada 2026-07-18, quedó obsoleta). Estado real hoy:
+> - **B-03 (API async)**: ABIERTA, sin trabajo iniciado (ruta crítica L; última task `waits_on` un número de carga que nadie declaró).
+> - **B-04 (ETL LeanIX)**: ABIERTA; auth real `waits_on: aranha-robots` (SSO WF-002B) + gate humano de licitud 21.719 (precondición HU-ARQ-D2/D2b). Ver board gate B-04b.
+> - **B-05 (Sink Obsidian)**: 1ª task CERRADA (recorrido en frío vía CLI vivo, G-22 commit `65e5094`); 2ª task `waits_on: knowledge-base-personal-obsidian` (contrato del vault).
+> - **B-06 (REQUERIMIENTOS_v1)**: 1ª y 2ª task CERRADAS (doc redactado 2026-07-18; verificador de trazabilidad G-26); 3ª task viva (extender RF/RNF cuando B-03/B-04/B-05 avancen).
+>
+> Cada task trae DADO/CUANDO/ENTONCES o ruta+aserción del test futuro (DoR
 > de `AUDITORIA_PRODUCTO_2026-07-16_spec-del-viaje.md`, ítem 6), no sólo una frase de alcance.
 
 ## Rebanada B-03 — API async ⏳ ABIERTA
@@ -67,7 +74,10 @@ fecha: 2026-07-18
 
 ## Rebanada B-05 — Sink Obsidian ⏳ ABIERTA
 
-- [ ] **Generar `.md` con frontmatter + embed, de forma aislada.**
+- [x] **Generar `.md` con frontmatter + embed, de forma aislada.** — CERRADA G-22 (2026-07-29,
+      commit `65e5094`): `tests/test_sink_obsidian_recorrido_frio.py` (5 dientes) drivea `python -m c4norm`
+      como subproceso fresco, parsea frontmatter con `yaml.safe_load`, resuelve el embed `![[...]]` en
+      disco con fidelidad de bytes, rojo-es-rojo (drawio truncado → exit≠0 + 0 `.md`). Ax-C4N-043.
       Ruta futura: `tests/test_sink_obsidian_recorrido_frio.py`.
       DADO un diagrama C4 ya emitido por `c4norm.emit` en una carpeta temporal de prueba,
       CUANDO se invoca el exportador de sink sobre ese diagrama,
@@ -85,14 +95,22 @@ fecha: 2026-07-18
 
 ## Rebanada B-06 — `wiki/REQUERIMIENTOS_v1.md` ⏳ ABIERTA
 
-- [ ] **Redactar RF/RNF con ID trazable, a partir de lo ya construido.**
+- [x] **Redactar RF/RNF con ID trazable, a partir de lo ya construido.** — CERRADA (doc redactado
+      2026-07-18, ciclo B-06): `wiki/REQUERIMIENTOS_v1.md` existe con RF-001..011 / RNF-001..005,
+      cada uno con sección de tests y matriz de trazabilidad. Ax-C4N-020.
       DADO el código vivo actual de `c4norm`/`api` y los docs de diseño existentes
       (`docs/C4_NORMALIZER_DESIGN.md`, `docs/DESIGN.md`),
       CUANDO se redacta `wiki/REQUERIMIENTOS_v1.md` con cada RF/RNF numerado,
       ENTONCES cada ID citado trae al menos una referencia a un test real existente en `tests/`
       que lo cierra (no una descripción sin ancla verificable).
-- [ ] **Escribir el verificador de trazabilidad.**
-      Ruta futura: `scripts/verificar_trazabilidad_requerimientos.py`.
+- [x] **Escribir el verificador de trazabilidad.** — CERRADA G-26 (2026-07-30):
+      `scripts/verificar_trazabilidad_requerimientos.py` (stdlib only; función `verificar()` importable +
+      CLI) parsea encabezados RF/RNF + matriz, valida cada node-id contra disco (archivo existe + símbolo
+      presente), clasifica OK/huérfano/pendiente-declarado (Futuro/EN DESARROLLO), exit 1 si hay huérfano.
+      Diente mutation-proof en `tests/test_trazabilidad_requerimientos.py` (fantasma→huérfano, ref
+      real→no-huérfano; pendiente-declarado sin test→no-huérfano). **HALLAZGO HONESTO al correrlo contra
+      el doc real (no maquillado): 3 huérfanos** → sembrados como HU-QA-D06 (abajo). Ax-C4N-047.
+      Ruta: `scripts/verificar_trazabilidad_requerimientos.py`.
       DADO `wiki/REQUERIMIENTOS_v1.md` con IDs de RF/RNF,
       CUANDO se corre el script contra `tests/`,
       ENTONCES reporta cero RF/RNF huérfano (sin test) — y si encuentra alguno, falla con exit
@@ -105,10 +123,22 @@ fecha: 2026-07-18
 
 ## 🌱 Semilla del borde (para el próximo disparo)
 
-Ninguna rebanada tiene trabajo iniciado. Candidata a tomar primero, según `plan.md` (ruta crítica
-propuesta): **B-03, primera task** ("migrar el cliente LLM a `httpx.AsyncClient`") — sin
-dependencia externa, apalanca a B-04 si su volumen crece. Alternativa: **B-06, primera task**
-(redactar RF/RNF de lo ya existente) puede correr en paralelo sin bloquear nada.
+Actualizada G-26 (2026-07-30). Candidatas no-gateadas, del centro al borde:
+
+1. **HU-QA-D06 (nace del verificador G-26)** — el verificador reporta HOY **3 requerimientos
+   huérfanos** en `wiki/REQUERIMIENTOS_v1.md`: **RF-008** (metadata gobernanza — solo cita
+   «B-01a/B-01b tests» en prosa, ningún `test_*.py::sym`), **RNF-002** (cobertura — solo el glob
+   `tests/test_*.py`, sin node-id concreto), **RNF-003** (performance CLI<5s/API<2s — cita
+   `test_audit_perf.py::test_cli_latency` y `::test_api_latency`, **ninguno existe**; el archivo
+   tiene tests de concurrencia, no de latencia). AC honesto: por cada huérfano, o (a) citar un test
+   real existente que lo cierre, o (b) ESCRIBIR el test que falta (RNF-003 performance no tiene
+   ninguno → construcción real, no cita de conveniencia), o (c) re-scope honesto del requerimiento a
+   «por validar» si no aplica. El motor nunca inventa: prohibido citar un test que no muerde el RF.
+   Al cerrar, actualizar el snapshot en `test_trazabilidad_requerimientos.py::test_real_doc_hoy_tiene_exactamente_tres_huerfanos`.
+2. **B-03, primera task** ("migrar el cliente LLM a `httpx.AsyncClient`") — ruta crítica de `plan.md`
+   pero esfuerzo **L y de alto riesgo**: toca `_openai_chat`/`_ask_batched`/`ThreadPoolExecutor` + el
+   guard `threading.Lock` del cap de gasto (302 tests dependen del comportamiento síncrono). No
+   atómica; requiere diseño cuidadoso (no delegable en frío).
 
 ## 🔗 Conexiones Relacionadas
 
