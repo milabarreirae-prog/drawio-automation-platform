@@ -17,7 +17,7 @@ fecha: 2026-07-18
 > HU-ARQ-D5 muerde):** ya NO es cierto que «las 4 rebanadas están todas abiertas, ninguna con
 > trabajo iniciado» (afirmación fechada 2026-07-18, quedó obsoleta). Estado real hoy:
 > - **B-03 (API async)**: ABIERTA, sin trabajo iniciado (ruta crítica L; última task `waits_on` un número de carga que nadie declaró).
-> - **B-04 (ETL LeanIX)**: ABIERTA; auth real `waits_on: aranha-robots` (SSO WF-002B) + gate humano de licitud 21.719 (precondición HU-ARQ-D2/D2b). Ver board gate B-04b.
+> - **B-04 (ETL LeanIX)**: 1ª task CERRADA (recorrido en frío fixture→XMLLinter, G-39 commit `ee2d97b`); 2ª task (gate 2 secretos) pendiente no-gateada; auth real `waits_on: aranha-robots` (SSO WF-002B) + gate humano de licitud 21.719 (precondición HU-ARQ-D2/D2b). Ver board gate B-04b.
 > - **B-05 (Sink Obsidian)**: 1ª task CERRADA (recorrido en frío vía CLI vivo, G-22 commit `65e5094`); 2ª task `waits_on: knowledge-base-personal-obsidian` (contrato del vault).
 > - **B-06 (REQUERIMIENTOS_v1)**: 1ª y 2ª task CERRADAS (doc redactado 2026-07-18; verificador de trazabilidad G-26); 3ª task viva (extender RF/RNF cuando B-03/B-04/B-05 avancen).
 >
@@ -50,10 +50,20 @@ fecha: 2026-07-18
       ENTONCES esta task se reemplaza por un DADO/CUANDO/ENTONCES con ese número — **hasta
       entonces queda explícitamente bloqueada, no se cierra con un target inventado.**
 
-## Rebanada B-04 — ETL LeanIX ⏳ ABIERTA
+## Rebanada B-04 — ETL LeanIX ⏳ ABIERTA (1ª task CERRADA G-39)
 
-- [ ] **Pipeline GraphQL → modelo lógico contra fixture grabado.**
-      Ruta futura: `tests/test_etl_leanix_recorrido_frio.py`.
+- [x] **Pipeline GraphQL → modelo lógico contra fixture grabado.** — CERRADA G-39 (2026-08-02,
+      commit `ee2d97b`): `tests/test_etl_leanix_recorrido_frio.py` (3 dientes) corre la pipeline
+      completa contra el fixture grabado (`leanix_falabella.json`) vía `leanix_to_c4` y pasa el
+      XML por `XMLLinter.full_validation` → nivel COMPLIANT (nunca BLOCKED; WARNING solo admite
+      hallazgos "por validar"); invariante Ax-C4N-001 (TechnologyStack sin mapeo se conserva y
+      marca "por validar", no se descarta ni se inventa tipo) + S4 (fixture sin patrones de
+      credencial). Suite 334 passed, cobertura 94.56%, ruff limpio. Ax-C4N-057.
+      DADO un fixture de respuesta GraphQL de `falabella.leanix.net` grabado en
+      `tests/fixtures/` (sin credenciales reales embebidas — S4),
+      CUANDO se ejecuta el pipeline ETL completo hasta alimentar `c4norm.ground`,
+      ENTONCES el diagrama resultante, pasado por `XMLLinter` (`api/linting.py`), es COMPLIANT o
+      trae únicamente hallazgos "por validar" — cero violación de tipado inventado.
       DADO un fixture de respuesta GraphQL de `falabella.leanix.net` grabado en
       `tests/fixtures/` (sin credenciales reales embebidas — S4),
       CUANDO se ejecuta el pipeline ETL completo hasta alimentar `c4norm.ground`,
@@ -123,22 +133,18 @@ fecha: 2026-07-18
 
 ## 🌱 Semilla del borde (para el próximo disparo)
 
-Actualizada G-26 (2026-07-30). Candidatas no-gateadas, del centro al borde:
+Actualizada G-39 (2026-08-02). Candidatas no-gateadas, del centro al borde:
 
-1. **HU-QA-D06 (nace del verificador G-26)** — el verificador reporta HOY **3 requerimientos
-   huérfanos** en `wiki/REQUERIMIENTOS_v1.md`: **RF-008** (metadata gobernanza — solo cita
-   «B-01a/B-01b tests» en prosa, ningún `test_*.py::sym`), **RNF-002** (cobertura — solo el glob
-   `tests/test_*.py`, sin node-id concreto), **RNF-003** (performance CLI<5s/API<2s — cita
-   `test_audit_perf.py::test_cli_latency` y `::test_api_latency`, **ninguno existe**; el archivo
-   tiene tests de concurrencia, no de latencia). AC honesto: por cada huérfano, o (a) citar un test
-   real existente que lo cierre, o (b) ESCRIBIR el test que falta (RNF-003 performance no tiene
-   ninguno → construcción real, no cita de conveniencia), o (c) re-scope honesto del requerimiento a
-   «por validar» si no aplica. El motor nunca inventa: prohibido citar un test que no muerde el RF.
-   Al cerrar, actualizar el snapshot en `test_trazabilidad_requerimientos.py::test_real_doc_hoy_tiene_exactamente_tres_huerfanos`.
+1. **B-04, 2ª task ("Ningún secreto de LeanIX en el repo")** — correr el gate 2 de
+   `.githooks/pre-push` (grep de secretos) sobre el árbol actual con el fixture ya versionado;
+   el diente S4 de `test_etl_leanix_recorrido_frio.py` ya fija el contenido del fixture sin
+   credenciales; la task se cierra cuando el gate pasa en verde sobre el commit que introdujo el
+   fixture (ya en árbol). Esfuerzo S, no-gateada, sigue la ruta viaje V1.
 2. **B-03, primera task** ("migrar el cliente LLM a `httpx.AsyncClient`") — ruta crítica de `plan.md`
    pero esfuerzo **L y de alto riesgo**: toca `_openai_chat`/`_ask_batched`/`ThreadPoolExecutor` + el
-   guard `threading.Lock` del cap de gasto (302 tests dependen del comportamiento síncrono). No
-   atómica; requiere diseño cuidadoso (no delegable en frío).
+   guard `threading.Lock` del cap de gasto (334 tests dependen del comportamiento síncrono). No
+   atómica; requiere diseño cuidadoso (no delegable en frío). Sigue pendiente el número de carga
+   objetivo (precondición externa).
 
 ## 🔗 Conexiones Relacionadas
 
