@@ -101,14 +101,28 @@ pytest
 
 ## Docker
 
-La imagen incluye Python + Node.js (para el layout ELK real):
+La imagen incluye Python + Node.js (para el layout ELK real). Dos perfiles
+(HU-ARQ-D4 / ADR-008), elegidos con un override de compose:
 
 ```bash
-docker compose up --build          # API en http://localhost:8000
-# o, sin compose:
+# Desarrollo: bind SOLO en 127.0.0.1 (Ax-SEC-001); credenciales en `.env`
+# (gitignored, placeholders — ver .env.example). Nunca valores reales en dev.
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#   → API en http://127.0.0.1:8000
+
+# Producción: publica en 0.0.0.0 (justificación escrita en docker-compose.prod.yml),
+# credenciales reales en `.env.prod` (gitignored, ver .env.prod.example).
+# API_KEY vacía = endpoints sin autenticación: no desplegar así.
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#   → API en el puerto 8000 del host
+
+# Sin compose:
 docker build -t drawio-c4-normalizer .
-docker run --rm -p 8000:8000 drawio-c4-normalizer
+docker run --rm -p 127.0.0.1:8000:8000 drawio-c4-normalizer
 ```
+
+`GET /health` reporta `environment: dev|prod` para saber en qué perfil está el
+servicio que responde.
 
 ## Reutilización entre células
 

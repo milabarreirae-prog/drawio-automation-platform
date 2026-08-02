@@ -43,6 +43,11 @@ class TestHealth:
         assert data["version"] == "0.1.0"
         assert data["layout_engine"] in ("elk", "layered")
 
+    def test_health_reports_environment(self, client: TestClient) -> None:
+        response = client.get("/health")
+        assert response.status_code == 200
+        assert response.json()["environment"] in ("dev", "prod")
+
 
 class TestMetrics:
     def test_metrics_returns_prometheus_payload(self, client: TestClient) -> None:

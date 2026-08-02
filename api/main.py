@@ -276,6 +276,7 @@ async def health_check() -> HealthResponse:
         version="0.1.0",
         layout_engine=_layout_engine(),
         uptime_seconds=round(time.time() - _start_time, 1),
+        environment=settings.env,
     )
 
 

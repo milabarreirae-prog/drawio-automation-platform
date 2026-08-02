@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "info"
 
+    # Entorno de despliegue (dev | prod) — HU-ARQ-D4: la API lo expone en GET /health
+    # para que el operador sepa en qué ambiente está y con qué credenciales corre.
+    env: str = Field(
+        default="dev",
+        validation_alias=AliasChoices("env", "C4NORM_ENV"),
+    )
+
     # =========================================================================
     # LLM / Visión
     # =========================================================================

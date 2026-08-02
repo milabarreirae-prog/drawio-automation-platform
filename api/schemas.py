@@ -216,6 +216,7 @@ class HealthResponse(BaseModel):
     version: str = Field(default="0.1.0", description="Versión de la API.")
     layout_engine: str = Field(default="layered", description="Motor de layout disponible: 'elk' o 'layered'.")
     uptime_seconds: float | None = Field(None, description="Tiempo de vida del proceso en segundos.")
+    environment: str = Field(default="dev", description="Entorno de despliegue: 'dev' o 'prod' (HU-ARQ-D4).")
 
 
 class ErrorResponse(BaseModel):

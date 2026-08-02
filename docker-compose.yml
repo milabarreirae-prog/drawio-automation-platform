@@ -1,8 +1,13 @@
-# Normalizador C4 — un solo servicio (la API). Sin dependencias externas.
+# Normalizador C4 — base común del stack. Sin puertos publicados y sin archivo de
+# credenciales: cada ambiente los declara en su override (docker-compose.<env>.yml).
+#
+#   Dev : docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#   Prod: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# El override de PROD es el único autorizado a publicar en 0.0.0.0 (Ax-SEC-001:
+# loopback por defecto en desarrollo). Ver HU-ARQ-D4 / ADR-008.
 services:
   api:
     build: .
     image: drawio-c4-normalizer:latest
-    ports:
-      - "8000:8000"
     restart: unless-stopped

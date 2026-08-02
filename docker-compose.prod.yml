@@ -1,0 +1,22 @@
+# Override de PRODUCCIÓN — despliegue que sirve la API a consumidores.
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Justificación de publicar en 0.0.0.0 (Ax-SEC-001: fuera de loopback exige
+# justificación escrita): este es el perfil cuyo propósito es exponer el
+# normalizador a consumidores de red; la API debe estar autenticada con API_KEY
+# no vacía en `.env.prod` (si API_KEY está vacía los endpoints quedan SIN
+# autenticación — no desplegar así).
+#
+# Credenciales reales SOLO aquí: `.env.prod` (gitignored, ver .env.prod.example).
+# Límites de recursos: valores de partida, NO load-tested aún (gate B-03 abierto).
+services:
+  api:
+    container_name: drawio-c4-normalizer-prod
+    environment:
+      - C4NORM_ENV=prod
+    env_file:
+      - .env.prod
+    ports:
+      - "0.0.0.0:8000:8000"
+    mem_limit: 2g
+    cpus: "2.0"

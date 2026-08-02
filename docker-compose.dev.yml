@@ -1,0 +1,20 @@
+# Override de DESARROLLO — uso local en la máquina del operador.
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# Reglas de este perfil (HU-ARQ-D4 + Ax-SEC-001):
+#   - Puerto publicado SOLO en loopback (127.0.0.1): nadie fuera de esta máquina
+#     alcanza la API en dev. No publicar aquí en 0.0.0.0.
+#   - Credenciales: NUNCA valores reales en este perfil. El env_file `.env` está
+#     gitignored y en dev debe llevar placeholders (ver .env.example). Los valores
+#     reales viven únicamente en el perfil prod (`.env.prod`).
+#   - Sin límites de recursos estrictos: dev usa lo que la máquina dé.
+
+services:
+  api:
+    container_name: drawio-c4-normalizer-dev
+    environment:
+      - C4NORM_ENV=dev
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:8000:8000"   # loopback explícito — Ax-SEC-001
