@@ -162,9 +162,10 @@ if [ -z "$staged_files" ]; then
     staged_files=$(git ls-files 2>/dev/null)
 fi
 
-# Excluir docs/ y plans/ del escaneo (artefactos documentales, pueden contener ejemplos de patrones)
+# Excluir docs/, plans/ y artefactos documentales raíz del escaneo (pueden contener ejemplos de patrones)
+# Ax-C4N-032: documentación revisada por humanos NO es secreto — citar patrones en prosa es pedagogía, no hardcodeo.
 if [ -n "$staged_files" ]; then
-    staged_files=$(echo "$staged_files" | grep -v '^docs/\|^plans/')
+    staged_files=$(echo "$staged_files" | grep -v '^docs/\|^plans/\|^CLINE\.md$\|^README\.md$\|^AGENTS\.md$')
 fi
 
 # Escanear en busca de patrones

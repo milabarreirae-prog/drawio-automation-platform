@@ -35,10 +35,8 @@ from c4norm.parse import (
     _iter_graph_models,
     _nearest_node,
     fix_mojibake,
-    parse_drawio,
 )
 from c4norm.vision import _env_int, _mime_type
-
 
 # =============================================================================
 # c4norm.parse — fix_mojibake (líneas 43-44, 48)
