@@ -267,20 +267,25 @@ Si el diagrama desborda el tamaño máximo de hoja y contiene ≥2 boundaries (D
 
 ---
 
-### RF-011 (Futuro, EN DESARROLLO): Enriquecimiento por IA sin inventar (B-04 LeanIX)
+### RF-011: Enriquecimiento por IA sin inventar (B-04 LeanIX)
 
 **Descripción**  
-*(Aplazado a B-04, coordinar con aranha-robots para SSO)* ETL GraphQL LeanIX → modelo lógico → pipeline que enriquece el diagrama con inventario real (ej: mapping de Containers a services del inventario). Jamás inventa servicios/puertos que LeanIX no reportó; marca "por validar" lo que no se pudo mapear.
+ETL GraphQL LeanIX → modelo lógico → pipeline que enriquece el diagrama con inventario real (ej: mapping de Containers a services del inventario). Jamás inventa servicios/puertos que LeanIX no reportó; marca "por validar" lo que no se pudo mapear (Ax-C4N-001: el motor nunca inventa).
 
 **Traza a código**
-- **Stub:** `c4norm/etl_leanix.py` (por escribir en B-04)
+- **Pipeline ETL:** `c4norm/leanix.py` — `parse_factsheets`, `inventory_to_diagram`, `leanix_to_c4`
 - **Enriquecimiento:** `c4norm/enrich.py` (preparado para recibir datos LeanIX, marca "(por validar)" si falta mapeo)
+- **CLI:** `c4norm/cli.py` (invoca el pipeline desde línea de comandos)
 
 **Pruebas verificadas**
-- *Ninguna aún* — B-04 abierta, fixture GraphQL grabado (sin credenciales) en espera de implementación
+- `tests/test_etl_leanix_recorrido_frio.py` — 3 dientes mutation-proof:
+  - `test_etl_recorrido_frio_fixture_a_xml_compliant`: ETL completo contra fixture → `XMLlinter` COMPLIANT
+  - `test_etl_no_inventa_tipo_desconocido`: TechnologyStack sin mapeo se conserva y marca "por validar"
+  - `test_etl_fixture_sin_credenciales_s4`: fixture versionado sin patrones de credencial real
+- Gate 2 secretos (`.githooks/pre-push`) pasa limpio sobre fixture versionado (G-40)
 
-**Estado:** ⏳ **EN DESARROLLO** (B-04)  
-Condición de reapertura: aranha-robots entrega conector/token federado (SSO).
+**Estado:** ✅ **CUMPLIDO** (pipeline ETL, recorrido en frío cerrado G-39 + gate 2 G-40)
+- **Pendiente = acto humano**: SSO real de LeanIX (`falabella.leanix.net`) bloqueado por `waits_on:` conector/token federado de **aranha-robots** (B-04b, `ask: proposals.log:386`). Hasta que aranha-robots entregue el conector o la fundadora visé base de licitud Ley 21.719 (HU-ARQ-D2b), el pipeline corre solo contra fixture, no contra tenant real.
 
 ---
 
@@ -423,7 +428,7 @@ Condición de reapertura: sandbox Confluence disponible para prueba de integraci
 | **RF-008** | Metadata gobernanza (Confianza/CMDB) | `c4norm/model.py` `legend.py` | `tests/test_c4norm.py::test_governance_metadata_extracted_to_structured_fields`, `::test_governance_badge_rendered_in_node_label`, `tests/test_enrich.py::test_standard_legend_adds_governance_row_only_when_declared` | ✅ CUMPLIDO | B-01a/B-01b drive real 2026-07-10 |
 | **RF-009** | Proceso Node persistente (B-02) | `c4norm/layout/elk.py::_PersistentElkProcess` | Integración en `test_c4norm.py` | ✅ CUMPLIDO | `test_audit_perf.py` |
 | **RF-010** | Multi-hoja si desborda + boundaries | `c4norm/emit.py::Emitter.emit()` | `test_multisheet.py::test_decompose_by_boundary` | ✅ CUMPLIDO | `test_multisheet.py` |
-| **RF-011** | Enriquecimiento LeanIX (B-04) | `c4norm/etl_leanix.py` (stub) | *Por escribir en B-04* | ⏳ EN DESARROLLO | *Futuro B-04* |
+| **RF-011** | Enriquecimiento LeanIX (B-04) | `c4norm/leanix.py` (`parse_factsheets`, `inventory_to_diagram`, `leanix_to_c4`) | `tests/test_etl_leanix_recorrido_frio.py` (3 dientes mutation-proof) | ✅ CUMPLIDO (pipeline; SSO real bloqueado B-04b) | `test_etl_leanix_recorrido_frio.py` (G-39, G-40) |
 | **RNF-001** | Fidelidad — nunca inventa | `c4norm/classify.py` `enrich.py` | `test_llm_classifier.py::test_invalid_type_keeps_heuristic` | ✅ CUMPLIDO | `test_enrich.py::test_unvalidated_marked` |
 | **RNF-002** | Suite pytest ≥93% | `tests/test_c4norm.py` `test_llm_classifier.py` `test_api.py` `test_linting.py` `test_repair_parents.py` `test_multisheet.py` | `tests/test_c4norm.py::test_elk_used_when_available_and_routes_branches`, `::test_layered_fallback_emits_valid_xml` | ⏳ POR VALIDAR (92.49% actual < 93% meta) | Gate `fail_under=92` en `pyproject.toml` |
 | **RNF-003** | Performance <5s CLI, <2s API | `c4norm/layout/elk.py` (persistente) | `test_audit_perf.py::test_cli_latency` | ✅ CUMPLIDO | Baseline B-02 |
@@ -448,15 +453,15 @@ Cada descope tiene **dueño** y **condición de reapertura** verificable (no sol
 
 ---
 
-### B-04: ETL LeanIX (coordinar con aranha-robots SSO)
+### B-04: ETL LeanIX (pipeline CUMPLIDO; SSO real bloqueado B-04b)
 
 | Aspecto | Valor |
 |--------|-------|
-| **Descripción** | GraphQL LeanIX → modelo lógico → enriquecimiento c4norm. Requiere SSO real (patrón WF-002B). |
-| **Hoy** | Stub `etl_leanix.py`; fixture GraphQL grabado (sin credenciales) listo para usar |
+| **Descripción** | GraphQL LeanIX → modelo lógico → enriquecimiento c4norm. Pipeline funciona contra fixture; SSO real (patrón WF-002B) requiere token federado. |
+| **Hoy** | Pipeline cerrado: `c4norm/leanix.py` (parse_factsheets/inventory_to_diagram/leanix_to_c4), recorrido en frío G-39 + gate 2 secretos G-40. Fixture GraphQL grabado (sin credenciales) versionado. SSO real bloqueado por precondición externa (B-04b `waits_on:` aranha-robots + visado fundadora 21.719 HU-ARQ-D2b). |
 | **Dueño** | aranha-robots (conector SSO); drawio-automation-platform (pipeline) |
-| **Condición de reapertura** | aranha-robots entrega token federado/conector; B-04 lo consume contra LeanIX real |
-| **DoD si reabre** | DADO fixture LeanIX grabado, CUANDO pipeline corre hasta ground, ENTONCES diagrama pasa `XMLLinter` como COMPLIANT o marca "(por validar)" en lo que ETL no mapeo — nunca inventa service/puerto |
+| **Condición de reapertura** | aranha-robots entrega token federado/conector + fundadora visa base de licitud 21.719; B-04b vuelve a cola accionable cuando caduque `recheck_by` |
+| **DoD** | DADO fixture LeanIX grabado, CUANDO pipeline corre hasta ground, ENTONCES diagrama pasa `XMLLinter` como COMPLIANT o marca "(por validar)" en lo que ETL no mapeó — nunca inventa service/puerto (verificado G-39). SSO real = test de cableado que consuma la QUERY generada del allow-list (criterio HU-ARQ-D2, nace con B-04b). |
 
 ---
 

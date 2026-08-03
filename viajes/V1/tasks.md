@@ -19,7 +19,7 @@ fecha: 2026-07-18
 > - **B-03 (API async)**: ABIERTA, sin trabajo iniciado (ruta crítica L; última task `waits_on` un número de carga que nadie declaró).
 > - **B-04 (ETL LeanIX)**: 1ª y 2ª task CERRADAS (recorrido en frío fixture→XMLLinter G-39 commit `ee2d97b`; gate 2 secretos G-40 commit `4c6ff6f`); auth real `waits_on: aranha-robots` (SSO WF-002B) + gate humano de licitud 21.719 (precondición HU-ARQ-D2/D2b). Ver board gate B-04b.
 > - **B-05 (Sink Obsidian)**: 1ª task CERRADA (recorrido en frío vía CLI vivo, G-22 commit `65e5094`); 2ª task `waits_on: knowledge-base-personal-obsidian` (contrato del vault).
-> - **B-06 (REQUERIMIENTOS_v1)**: 1ª y 2ª task CERRADAS (doc redactado 2026-07-18; verificador de trazabilidad G-26); 3ª task viva (extender RF/RNF cuando B-03/B-04/B-05 avancen).
+> - **B-06 (REQUERIMIENTOS_v1)**: 3 tasks CERRADAS (doc redactado 2026-07-18; verificador de trazabilidad G-26; extensión RF-011 a B-04 G-41).
 >
 > Cada task trae DADO/CUANDO/ENTONCES o ruta+aserción del test futuro (DoR
 > de `AUDITORIA_PRODUCTO_2026-07-16_spec-del-viaje.md`, ítem 6), no sólo una frase de alcance.
@@ -131,7 +131,15 @@ fecha: 2026-07-18
       CUANDO se corre el script contra `tests/`,
       ENTONCES reporta cero RF/RNF huérfano (sin test) — y si encuentra alguno, falla con exit
       distinto de 0 (no advertencia muda).
-- [ ] **Extender RF/RNF a B-03/B-04/B-05 a medida que avancen.**
+- [x] **Extender RF/RNF a B-03/B-04/B-05 a medida que avancen.** — CERRADA G-41 (2026-08-03):
+      B-04 cerró 2 tasks reales (recorrido en frío G-39 + gate 2 secretos G-40); `wiki/REQUERIMIENTOS_v1.md`
+      actualizado en el mismo ciclo: RF-011 pasa de ⏳ EN DESARROLLO a ✅ CUMPLIDO (pipeline ETL), con traza
+      real a `c4norm/leanix.py` (`parse_factsheets`/`inventory_to_diagram`/`leanix_to_c4`) + `tests/test_etl_leanix_recorrido_frio.py`
+      (3 dientes mutation-proof). Fix de traza: el doc citaba `c4norm/etl_leanix.py` (stub inexistente) — el módulo real
+      se llama `c4norm/leanix.py` (descubierto al contrastar doc vs disco). Sección B-04 FUERA-de-v1 actualizada
+      (DoD con verificación G-39 + criterio cableado HU-ARQ-D2). B-03 (load-test) y B-05 (sink Obsidian) siguen
+      sin proceder — gateadas por precondición externa. Verificador de trazabilidad EN VIVO: cero RF/RNF huérfano
+      tras la actualización.
       DADO que B-03/B-04/B-05 están hoy ABIERTAS sin código nuevo,
       CUANDO cualquiera de ellas cierre su primera task real,
       ENTONCES `wiki/REQUERIMIENTOS_v1.md` se actualiza en el mismo ciclo con el RF/RNF
@@ -139,13 +147,11 @@ fecha: 2026-07-18
 
 ## 🌱 Semilla del borde (para el próximo disparo)
 
-Actualizada G-39 (2026-08-02). Candidatas no-gateadas, del centro al borde:
+Actualizada G-41 (2026-08-03). Candidatas no-gateadas, del centro al borde:
 
-1. **B-04, 2ª task ("Ningún secreto de LeanIX en el repo")** — correr el gate 2 de
-   `.githooks/pre-push` (grep de secretos) sobre el árbol actual con el fixture ya versionado;
-   el diente S4 de `test_etl_leanix_recorrido_frio.py` ya fija el contenido del fixture sin
-   credenciales; la task se cierra cuando el gate pasa en verde sobre el commit que introdujo el
-   fixture (ya en árbol). Esfuerzo S, no-gateada, sigue la ruta viaje V1.
+1. **Demo viaje V1 end-to-end** — recorrido en frío con AMBAS fuentes (fixture LeanIX + XML Draw.io
+   crudo) atravesando el instrumento vivo hasta nota Obsidian, evidencia DoD-en-frío de C4+ISO 7200
+   + enriquecimiento LeanIX. Esfuerzo M, no-gateada, cierra el viaje V1 como evidence-DoD (no acta).
 2. **B-03, primera task** ("migrar el cliente LLM a `httpx.AsyncClient`") — ruta crítica de `plan.md`
    pero esfuerzo **L y de alto riesgo**: toca `_openai_chat`/`_ask_batched`/`ThreadPoolExecutor` + el
    guard `threading.Lock` del cap de gasto (334 tests dependen del comportamiento síncrono). No
