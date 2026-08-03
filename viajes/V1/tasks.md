@@ -145,18 +145,39 @@ fecha: 2026-07-18
       ENTONCES `wiki/REQUERIMIENTOS_v1.md` se actualiza en el mismo ciclo con el RF/RNF
       correspondiente — no se acumula deuda documental silenciosa.
 
+## 🎬 Demo V1 end-to-end (evidence-DoD) — CERRADA G-42 (2026-08-03)
+
+Recorrido EN FRÍO con AMBAS fuentes de entrada del producto atravesando el CLI real
+(`python -m c4norm`) hasta nota Obsidian, cerrando el viaje V1 como evidencia-DoD (no acta):
+
+- [x] **Habilitación del sink en el camino LeanIX.** — `--from-leanix` IGNORABA `--obsidian` en
+      silencio (argparse lo aceptaba, la ruta nunca creaba el vault): la fuente LeanIX no podía
+      atravesar el instrumento vivo hasta Obsidian. Fix en `c4norm/cli.py`: helper `_sink_basename`
+      (DRY del sufijo compuesto, usado por ambas rutas) + soporte `--obsidian` (construye
+      `NormalizeReport` desde el diagrama + avisos — `low_confidence` desde
+      `cmdb_status == "por validar"` — y llama `export_obsidian`). Ax-C4N-060.
+- [x] **Cold-run `tests/test_demo_viaje_v1_recorrido_frio.py` (3 dientes, nada mockeado).** —
+      (1) drawio crudo → C4 + ISO 7200 → Obsidian (XML COMPLIANT en `XMLLinter`, cajetín real
+      `c4norm-tb-title`, 1 `.md` + 1 `.drawio`, frontmatter YAML parseable, embed `![[…]]` resuelto
+      en disco con fidelidad de bytes); (2) LeanIX → C4 + ISO 7200 → Obsidian (prueba la capacidad
+      nueva: vault vacío = no-op, fallaría `len(md_files)==1`); (3) invariante Ax-C4N-001 también en
+      la nota (techstack-legado conservado «por validar», nunca descartado ni tipado en silencio).
+      Suite 337 passed (+3), cobertura 94.31%, 3 gates VERDE (hook EN VIVO).
+
 ## 🌱 Semilla del borde (para el próximo disparo)
 
-Actualizada G-41 (2026-08-03). Candidatas no-gateadas, del centro al borde:
+Actualizada G-42 (2026-08-03). **El viaje V1 queda en su frontera de precondiciones externas** — la
+demo end-to-end cerró el evidence-DoD y todas las rebanadas restantes están gateadas:
 
-1. **Demo viaje V1 end-to-end** — recorrido en frío con AMBAS fuentes (fixture LeanIX + XML Draw.io
-   crudo) atravesando el instrumento vivo hasta nota Obsidian, evidencia DoD-en-frío de C4+ISO 7200
-   + enriquecimiento LeanIX. Esfuerzo M, no-gateada, cierra el viaje V1 como evidence-DoD (no acta).
-2. **B-03, primera task** ("migrar el cliente LLM a `httpx.AsyncClient`") — ruta crítica de `plan.md`
+1. **B-03, primera task** ("migrar el cliente LLM a `httpx.AsyncClient`") — ruta crítica de `plan.md`
    pero esfuerzo **L y de alto riesgo**: toca `_openai_chat`/`_ask_batched`/`ThreadPoolExecutor` + el
-   guard `threading.Lock` del cap de gasto (334 tests dependen del comportamiento síncrono). No
+   guard `threading.Lock` del cap de gasto (337 tests dependen del comportamiento síncrono). No
    atómica; requiere diseño cuidadoso (no delegable en frío). Sigue pendiente el número de carga
-   objetivo (precondición externa).
+   objetivo (precondición externa — nadie lo escaló aún).
+2. **Re-evaluación de gates externos** (al desbloquearse): B-04b (SSO aranha-robots → conector LeanIX
+   real, + visado fundadora 21.719) y B-05 (contrato del vault de knowledge-base-personal-obsidian).
+   Si aranha-robots entrega el conector O la fundadora visa la base de licitud, la rebanada
+   correspondiente se reactiva con su DADO/CUANDO/ENTONCES concreto.
 
 ## 🔗 Conexiones Relacionadas
 

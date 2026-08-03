@@ -15,9 +15,20 @@ import sys
 from pathlib import Path
 
 from c4norm.leanix import inventory_to_diagram, leanix_to_c4
-from c4norm.normalize import normalize
+from c4norm.normalize import NormalizeReport, normalize
 from c4norm.obsidian import export_obsidian
 from c4norm.sheet import TitleBlock
+
+
+def _sink_basename(output: Path | None, default: str) -> str:
+    """Nombre base del artefacto para el sink Obsidian (sin sufijo compuesto)."""
+    if output is None:
+        return default
+    basename = output.name
+    for suffix in (".drawio.xml", ".xml", ".drawio"):
+        if basename.endswith(suffix):
+            return basename[: -len(suffix)]
+    return basename
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -80,6 +91,19 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[c4norm] escrito en {args.output}", file=sys.stderr)
         else:
             print(xml_out)
+
+        if args.obsidian:
+            basename = _sink_basename(args.output, diagram_name)
+            leanix_report = NormalizeReport(
+                diagram_name=diagram_name,
+                c4_level=args.level,
+                node_count=len(diagram.nodes),
+                edge_count=len(diagram.edges),
+                low_confidence=[n.c4_name for n in diagram.nodes if n.cmdb_status == "por validar"],
+                warnings=warnings,
+            )
+            drawio_path, md_path = export_obsidian(xml_out, leanix_report, tb, args.obsidian, basename)
+            print(f"[c4norm] Obsidian: {md_path} + {drawio_path}", file=sys.stderr)
         return 0
 
     if args.input is None:
@@ -109,16 +133,7 @@ def main(argv: list[str] | None = None) -> int:
         print(xml_out)
 
     if args.obsidian:
-        if args.output:
-            # Quita el sufijo compuesto .drawio.xml / .drawio / .xml para no producir
-            # nombres como "salida.drawio.drawio" (Path.stem sólo pela el último sufijo).
-            basename = args.output.name
-            for suffix in (".drawio.xml", ".xml", ".drawio"):
-                if basename.endswith(suffix):
-                    basename = basename[: -len(suffix)]
-                    break
-        else:
-            basename = report.diagram_name
+        basename = _sink_basename(args.output, report.diagram_name)
         drawio_path, md_path = export_obsidian(xml_out, report, tb, args.obsidian, basename)
         print(f"[c4norm] Obsidian: {md_path} + {drawio_path}", file=sys.stderr)
 
