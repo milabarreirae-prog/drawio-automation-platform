@@ -245,7 +245,7 @@ descripción del nodo/relación.
 | Síntoma | Causa / solución |
 |---------|------------------|
 | `layout_engine: layered` en vez de `elk` | Falta Node/elkjs: `npm install --prefix c4norm/layout` o define `C4NORM_NODE_BIN`. |
-| Acentos rotos (`PeticiÃ³n`) | Mojibake del round-trip de Confluence; c4norm lo sanea al parsear. |
+| Acentos rotos (`Petición`) | Mojibake del round-trip de Confluence; c4norm lo sanea al parsear. |
 | `422` al normalizar | XML sin diagrama, vacío, o `c4_level` fuera de 1–3. |
 | Error `requiere C4NORM_LLM_API_KEY` (422 en API) | `--classifier llm`/`auto` sin clave: defínela o usa `heuristic`. |
 | Timeout o error de red al clasificar | Diagrama muy grande (>20 nodos por lote). La segunda llamada es automática; si persiste, prueba `--classifier heuristic`. |
