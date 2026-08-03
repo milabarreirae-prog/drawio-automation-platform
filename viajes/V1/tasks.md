@@ -17,7 +17,7 @@ fecha: 2026-07-18
 > HU-ARQ-D5 muerde):** ya NO es cierto que «las 4 rebanadas están todas abiertas, ninguna con
 > trabajo iniciado» (afirmación fechada 2026-07-18, quedó obsoleta). Estado real hoy:
 > - **B-03 (API async)**: ABIERTA, sin trabajo iniciado (ruta crítica L; última task `waits_on` un número de carga que nadie declaró).
-> - **B-04 (ETL LeanIX)**: 1ª task CERRADA (recorrido en frío fixture→XMLLinter, G-39 commit `ee2d97b`); 2ª task (gate 2 secretos) pendiente no-gateada; auth real `waits_on: aranha-robots` (SSO WF-002B) + gate humano de licitud 21.719 (precondición HU-ARQ-D2/D2b). Ver board gate B-04b.
+> - **B-04 (ETL LeanIX)**: 1ª y 2ª task CERRADAS (recorrido en frío fixture→XMLLinter G-39 commit `ee2d97b`; gate 2 secretos G-40 commit `4c6ff6f`); auth real `waits_on: aranha-robots` (SSO WF-002B) + gate humano de licitud 21.719 (precondición HU-ARQ-D2/D2b). Ver board gate B-04b.
 > - **B-05 (Sink Obsidian)**: 1ª task CERRADA (recorrido en frío vía CLI vivo, G-22 commit `65e5094`); 2ª task `waits_on: knowledge-base-personal-obsidian` (contrato del vault).
 > - **B-06 (REQUERIMIENTOS_v1)**: 1ª y 2ª task CERRADAS (doc redactado 2026-07-18; verificador de trazabilidad G-26); 3ª task viva (extender RF/RNF cuando B-03/B-04/B-05 avancen).
 >
@@ -50,7 +50,7 @@ fecha: 2026-07-18
       ENTONCES esta task se reemplaza por un DADO/CUANDO/ENTONCES con ese número — **hasta
       entonces queda explícitamente bloqueada, no se cierra con un target inventado.**
 
-## Rebanada B-04 — ETL LeanIX ⏳ ABIERTA (1ª task CERRADA G-39)
+## Rebanada B-04 — ETL LeanIX ⏳ ABIERTA (1ª y 2ª task CERRADAS G-39/G-40)
 
 - [x] **Pipeline GraphQL → modelo lógico contra fixture grabado.** — CERRADA G-39 (2026-08-02,
       commit `ee2d97b`): `tests/test_etl_leanix_recorrido_frio.py` (3 dientes) corre la pipeline
@@ -69,7 +69,13 @@ fecha: 2026-07-18
       CUANDO se ejecuta el pipeline ETL completo hasta alimentar `c4norm.ground`,
       ENTONCES el diagrama resultante, pasado por `XMLLinter` (`api/linting.py`), es COMPLIANT o
       trae únicamente hallazgos "por validar" — cero violación de tipado inventado.
-- [ ] **Ningún secreto de LeanIX en el repo.**
+- [x] **Ningún secreto de LeanIX en el repo.** — CERRADA G-40 (2026-08-02, commit `4c6ff6f`):
+      gate 2 de `.githooks/pre-push` pasa en verde sobre el fixture versionado (`leanix_falabella.json`).
+      El hook excluía `docs/` y `plans/` pero no artefactos documentales raíz (`CLINE.md`, `README.md`,
+      `AGENTS.md`) que pueden citar patrones de ejemplo en prosa (Ax-C4N-032: documentación revisada por
+      humanos NO es secreto). Fix: exclusión extendida a `^CLINE\.md$|^README\.md$|^AGENTS\.md$`. S4 de
+      `test_etl_leanix_recorrido_frio.py` ya fija el contenido del fixture sin credenciales reales.
+      Suite 334 passed, cobertura 94.56%, ruff limpio.
       DADO el fixture de la task anterior,
       CUANDO se corre el gate 2 de `.githooks/pre-push` (grep de secretos) sobre el commit que lo
       introduce,
