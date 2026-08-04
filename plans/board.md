@@ -1,7 +1,7 @@
 ---
 title: Board — drawio-automation-platform
 tags: [board, kanban, c4norm]
-actualizado: 2026-08-04 (G-47 — salida temprana honesta: estado idéntico a G-46, backlog no-gateado exhausto, gates B-04b/HU-ARQ-D2b sin novedad conector aranha-robots ni visado fundadora, árbol limpio)
+actualizado: 2026-08-04 (G-48 — salida temprana honesta: estado idéntico a G-47/G-46, backlog no-gateado exhausto, gates B-04b/HU-ARQ-D2b sin novedad conector aranha-robots ni visado fundadora, árbol limpio)
 ---
 
 # 📋 Board vivo — c4norm
@@ -39,9 +39,9 @@ Instruye QUÉ+POR QUÉ (no diseña mi solución, Regla 123); yo agendo y prioriz
 **Nota**: B-06 completado en ciclo 2026-07-18, Ax-C4N-020 destilado (especificación trazable como unidad); B-12 VERIFICADO 2026-07-21, Ax-C4N-027 (gates toolchain fail-closed); B-13 VERIFICADO 2026-07-21, Ax-C4N-028 (multi-hoja por cardinalidad); **B-14 VERIFICADO 2026-07-22, Ax-C4N-029 (tope de ancho al formato objetivo — eje-anchura gemelo de B-13; + el verificador que muta puede corromper, su "restaurado ✓" no es evidencia). Próximo candidato no-gateado: B-15 (reconciliar ruff 0.15.x — gate 3 rojo en HEAD).** B-15 VERIFICADO 2026-07-22 (`af39794`), Ax-C4N-030; **B-16 VERIFICADO 2026-07-23 (el verde cuenta sus skips — gate 1 en 3 estados + suite_history.log), Ax-C4N-031. Próximo candidato no-gateado: B-17 (falso positivo gate 2 fallback ls-files).** **HU-QA-D02 VERIFICADO 2026-07-28 (G-20: concurrencia REAL del cap LLM — `ThreadPoolExecutor` real bajo el guard, 10 casos, mutation-proof), Ax-C4N-041.** **HU-QA-D03 VERIFICADO 2026-07-29 (G-24: contrato env-var malformada del cap LLM, 296 passed), Ax-C4N-045. HU-QA-D01+D04 VERIFICADOS 2026-07-30 (G-25: guard no-dict de `parse_factsheets` + ancla contra remociones de la allow-list, 302 passed; se cortó la evaporación silenciosa de 4 recorridos), Ax-C4N-046 → sembró HU-QA-D05 (external/name consumidos-sin-pedir).**
 
 ## ⏭️ PRÓXIMO CICLO
-### 2026-08-04T23:59 — G-47 SALIDA TEMPRANA HONESTA (estado idéntico a G-46: gates B-04b/HU-ARQ-D2b sin novedad conector aranha-robots ni visado fundadora desde 2026-08-03, backlog no-gateado exhausto, árbol limpio, 0 órdenes nuevas)
-- **ORIENTAR (señales baratas)**: git limpio (HEAD `e081a01` G-46). Recheck B-04b EN VIVO: `docs/SOLICITUD_VISADO_LICITUD_LEANIX.md` sigue sin ratificación fundadora (2026-07-29, 6 días sin visado); no incoming de hermanas (`aranha-robots` sin conector LeanIX nuevo). 0 notas nuevas. 0 órdenes. 0 items EN CURSO.
-- **SELECCIONAR (soberanía, disciplina de costo)**: **Salida temprana honesta**. Backlog no-gateado agotado. Sin tarea constructiva sin desbloquear precondición humana. Descartado: inventar trabajo. Ciclo de 1 línea.
+### 2026-08-04T— G-48 SALIDA TEMPRANA HONESTA (estado idéntico a G-47/G-46: gates B-04b/HU-ARQ-D2b sin novedad conector aranha-robots ni visado fundadora desde 2026-08-03, backlog no-gateado exhausto, árbol limpio, 0 órdenes nuevas)
+- **ORIENTAR (señales baratas)**: git limpio (HEAD `71e82df` G-47). Recheck B-04b EN VIVO: `.hive/exchange/aranha-robots/` sin conector LeanIX nuevo (últimos archivos 2026-08-01/08-03, ninguno dirigido a drawio, ambos ámbito aranha-robots); `docs/SOLICITUD_VISADO_LICITUD_LEANIX.md` sigue sin ratificación fundadora (desde 2026-07-29, 6 días). Buzon entrada vacío (0 notas nuevas). Ledger: voto `gate_con_actor_inexistente` = falso positivo confirmado (ya votado 2026-08-01 línea 772, el briefing no lo detectó — exacto genotipo que `fix_detector_votos_falsos_positivos` corrige, deadline 08-08). Árbito limpio. 0 órdenes. 0 items EN CURSO.
+- **SELECCIONAR (soberanía, disciplina de costo)**: **Salida temprana honesta**. Backlog no-gateado agotado (B-03 gateado, B-04b/B-05 bloqueados por precondición externa, B-06 completado). Sin novedad federada ejecutable. Sin tarea constructiva sin desbloquear precondición humana. Honestidad fiscal: no dedicar ciclo a trabajo que no existe. Ciclo de 1 línea.
 
 ### 2026-08-04T — G-46 SALIDA TEMPRANA VERIFICADA (estado idéntico a G-45: gates B-04b/HU-ARQ-D2b sin novedad desde 2026-07-30/08-03, no incoming de hermanas, backlog no-gateado exhausto, árbol limpio)
 
