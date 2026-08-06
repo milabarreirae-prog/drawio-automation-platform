@@ -31,9 +31,19 @@ concreto:
 
 ## Estado (honestidad de estado — Ax-C4N-001)
 
-La base de licitud nace `por validar`. **El motor no inventa un dictamen jurídico**: esta
-solicitud eleva la decisión a quien la tiene (la fundadora), no la da por cierta. Hasta la
-ratificación, B-04b permanece gateado.
+**CONCEDIDO — 2026-08-06**. Respuesta de la fundadora a través de hive-meta (ORDEN_FUNDADORA|visado_licitud_leanix_concedido, ledger `.hive/consensus/AUTORIZACIONES.log` 2026-08-06T18:44).
+
+### Ratificación
+
+Pregunta elevada: *¿los nombres y descripciones de las aplicaciones que trae LeanIX contienen datos de alguna persona?*
+
+**Respuesta:** "no. Lo que se ingiere es inventario de arquitectura de la empresa."
+
+Confirmado:
+- `displayName` y `description` del tenant **no portan dato personal**: es inventario de arquitectura corporativa (aplicaciones, componentes, objetos de dato, proveedores) de titularidad de la propia organización.
+- Con eso se cumple lo que pedía esta solicitud punto 4. La base de licitud deja de estar `por validar`.
+- **El gate `B-04b` queda desbloqueado por el lado legal.** Lo que resta es la credencial de aranha-robots: técnico, de la federación, **no de la fundadora**.
+- La minimización ya cableada (lista blanca de campos + lista negra de PII con test que muerde) sigue siendo lo que sostiene el visado: **no se relajará**. Si algún día apareciera dato personal residual en una descripción, se re-eleva — con el hecho nuevo nombrado, no por inercia.
 
 ## Traza
 
