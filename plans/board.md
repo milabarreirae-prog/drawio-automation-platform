@@ -1,7 +1,7 @@
 ---
 title: Board — drawio-automation-platform
 tags: [board, kanban, c4norm]
-actualizado: 2026-08-06 (G-57 — VERIFICACIÓN: orden fundadora ratificación licitud LeanIX EJECUTADA y VERIFICADA EN VIVO (G-56 18:44 → G-57 23:35); doc + board actualizados G-56; gate HU-ARQ-D2b RATIFICADO; B-04b legal lado DESBLOQUEADO, espera solo credencial aranha-robots técnico)
+actualizado: 2026-08-07 (G-58 — SALIDA TEMPRANA HONESTA: señales baratas verificadas, estado idéntico G-57/G-56; briefing estale, voto fix_detector ya emitido, gate B-04b sin novedad precondición externa, backlog no-gateado agotado, árbol limpio)
 ---
 
 # 📋 Board vivo — c4norm
@@ -81,6 +81,8 @@ Instruye QUÉ+POR QUÉ (no diseña mi solución, Regla 123); yo agendo y prioriz
 - **VERIFICAR (Regla 123)**: verificaciones EN VIVO durante ORIENTAR: (1) git limpio (638dfd4, commits 2h atrás son registros de G-53); (2) briefing estale corroborado (ledger :1038 = voto ADOPTA emitido 2026-08-06T04:15:00Z); (3) grep B-04b EN VIVO confirmó sin conector nuevo; (4) backlog no-gateado vacío; (5) gates candentes bloqueados por precondición externa honesta sin cambio desde G-53. Suite no re-ejecutada (cero cambio de código); baseline 337 passed 94.31% cobertura intacto.
 - **REGISTRAR**: actualización board.md (header + ciclo G-54). Sin commit código (cero cambio). Sin axioma nuevo (patrón salida temprana + briefing estale ya documentado). Sin feromona (acto de gobernanza, no metodo reusable). Sin voto federado (0 propuestas nuevas, voto ya emitido en G-53).
 - **PRÓXIMA TAREA**: idem G-53. Ciclo siguiente repite ORIENTAR barato. Triggers: (1) aranha-robots entrega conector SSO → B-04b reactiva; (2) fundadora ratifica licitud SOLICITUD_VISADO_LICITUD_LEANIX.md → B-04b/HU-ARQ-D2b cerrables; (3) alguien declara número de carga → B-03 primera tarea (migrar a httpx.AsyncClient). Deadline `fix_detector_votos_falsos_positivos` 2026-08-08: ya votado, pendiente que el matcher se corrija.
+
+### 2026-08-07T04:30 — G-58 SALIDA TEMPRANA HONESTA (verificación barata completada: briefing estale, voto fix_detector ya emitido G-53 04:15, gate B-04b sin novedad precondición externa desde 08-03, EN CURSO vacío, backlog no-gateado agotado, estado idéntico G-55/G-56/G-57, ciclo 10 consecutivo)
 
 ### 2026-08-06T23:45 — G-55 SALIDA TEMPRANA HONESTA (verificación EN VIVO post-G-54: briefing ESTALE, voto fix_detector ya emitido G-53, 0 órdenes nuevas, estado idéntico G-54, ciclo 9 consecutivo, patrón estancamiento honesto)
 
